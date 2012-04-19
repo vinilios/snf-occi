@@ -72,18 +72,22 @@ class ComputeBackend(MyBackend):
             raise AttributeError("This action is currently no applicable.")
         elif action == START:
             entity.attributes['occi.compute.state'] = 'active'
+            entity.actions = [STOP, SUSPEND, RESTART]
             # read attributes from action and do something with it :-)
             print('Starting virtual machine with id' + entity.identifier)
         elif action == STOP:
             entity.attributes['occi.compute.state'] = 'inactive'
+            entity.actions = [START]
             # read attributes from action and do something with it :-)
             print('Stopping virtual machine with id' + entity.identifier)
         elif action == RESTART:
+            entity.actions = [STOP, SUSPEND, RESTART]
             entity.attributes['occi.compute.state'] = 'active'
             # read attributes from action and do something with it :-)
             print('Restarting virtual machine with id' + entity.identifier)
         elif action == SUSPEND:
             entity.attributes['occi.compute.state'] = 'suspended'
+            entity.actions = [START]
             # read attributes from action and do something with it :-)
             print('Suspending virtual machine with id' + entity.identifier)
 
@@ -97,6 +101,7 @@ class MyAPP(Application):
         sec_obj = {'username': 'password'}
 
         snf = ComputeClient(Config())
+
         images = snf.list_images()
         for image in images:
             IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE])
@@ -110,7 +115,7 @@ class MyAPP(Application):
                                  }
             FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
             self.register_backend(FLAVOR, MixinBackend())
-   
+        
         
         
         return self._call_occi(environ, response, security=sec_obj, foo=None)
