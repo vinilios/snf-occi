@@ -3,7 +3,7 @@
 from kamaki.clients.compute import ComputeClient
 from kamaki.config  import Config
 
-from occi.core_model import Mixin
+from occi.core_model import Mixin, Resource, Link, Entity
 from occi.backend import ActionBackend, KindBackend, MixinBackend
 from occi.extensions.infrastructure import COMPUTE, START, STOP, SUSPEND, RESTART, RESOURCE_TEMPLATE, OS_TEMPLATE
 
@@ -95,6 +95,24 @@ class MyAPP(Application):
 
     def __call__(self, environ, response):
         sec_obj = {'username': 'password'}
+
+        snf = ComputeClient(Config())
+        images = snf.list_images()
+        for image in images:
+            IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE])
+            self.register_backend(IMAGE, MixinBackend())
+
+        flavors = snf.list_flavors()
+        for flavor in flavors:
+            FLAVOR_ATTRIBUTES = {'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
+                                 'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
+                                 'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
+                                 }
+            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
+            self.register_backend(FLAVOR, MixinBackend())
+   
+        
+        
         return self._call_occi(environ, response, security=sec_obj, foo=None)
 
 if __name__ == '__main__':
@@ -111,24 +129,8 @@ if __name__ == '__main__':
     APP.register_backend(RESOURCE_TEMPLATE, MixinBackend())
     APP.register_backend(OS_TEMPLATE, MixinBackend())
     
-
-    snf = ComputeClient(Config())
-    images = snf.list_images()
-    for image in images:
-        IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE])
-        APP.register_backend(IMAGE, MixinBackend())
-
-    flavors = snf.list_flavors()
-    for flavor in flavors:
-        FLAVOR_ATTRIBUTES = {'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
-                             'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
-                             'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
-                             }
-        FLAVOR =Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
-        APP.register_backend(FLAVOR, MixinBackend())
-        
+ 
     VALIDATOR_APP = validator(APP)
-
     HTTPD = make_server('', 8888, VALIDATOR_APP)
     HTTPD.serve_forever()
 
