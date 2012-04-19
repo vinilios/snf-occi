@@ -48,6 +48,14 @@ class ComputeBackend(MyBackend):
         for mixin in entity.mixins:
             print mixin.term
             print mixin.attributes
+            if mixin.related.term == 'os_tpl':
+                image_id = mixin.attributes['occi.core.id']
+            if mixin.related.term == 'resource_tpl':
+                flavor_id = mixin.attributes['occi.core.id']
+
+        snf = ComputeClient(Config())
+        vm_name = entity.attributes['occi.compute.hostname']
+        snf.create_server(vm_name, flavor_id, image_id)
 
         print('Creating the virtual machine with id: ' + entity.identifier)
         
@@ -106,16 +114,18 @@ class MyAPP(Application):
 
         images = snf.list_images()
         for image in images:
-            IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE])
+            IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
+            IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), OS_TEMPLATE, attributes = IMAGE_ATTRIBUTES)
             self.register_backend(IMAGE, MixinBackend())
 
         flavors = snf.list_flavors()
         for flavor in flavors:
-            FLAVOR_ATTRIBUTES = {'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
+            FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
+                                 'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
                                  'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
                                  'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
                                  }
-            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
+            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), RESOURCE_TEMPLATE, attributes = FLAVOR_ATTRIBUTES)
             self.register_backend(FLAVOR, MixinBackend())
         
         #TODO show only current VM instances
