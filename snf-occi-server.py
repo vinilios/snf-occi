@@ -100,6 +100,8 @@ class MyAPP(Application):
     def __call__(self, environ, response):
         sec_obj = {'username': 'password'}
 
+
+        #Refresh registry entries with current Cyclades state
         snf = ComputeClient(Config())
 
         images = snf.list_images()
@@ -116,7 +118,8 @@ class MyAPP(Application):
             FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
             self.register_backend(FLAVOR, MixinBackend())
         
-        
+        #TODO show only current VM instances
+                
         
         return self._call_occi(environ, response, security=sec_obj, foo=None)
 
