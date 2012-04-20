@@ -38,30 +38,50 @@ class MyBackend(KindBackend, ActionBackend):
 
 class ComputeBackend(MyBackend):
     '''
-    A Backend for compute instances.
+    Backend for Cyclades/Openstack compute instances
     '''
 
     def create(self, entity, extras):
+    
+        for mixin in entity.mixins:
+            if mixin.related[0].term == 'os_tpl':
+                image = mixin
+                image_id = mixin.attributes['occi.core.id']
+            if mixin.related[0].term == 'resource_tpl':
+                flavor = mixin
+                flavor_id = mixin.attributes['occi.core.id']
+                
         entity.attributes['occi.compute.state'] = 'active'
         entity.actions = [STOP, SUSPEND, RESTART]
-        
-        for mixin in entity.mixins:
-            print mixin.term
-            print mixin.attributes
-            if mixin.related.term == 'os_tpl':
-                image_id = mixin.attributes['occi.core.id']
-            if mixin.related.term == 'resource_tpl':
-                flavor_id = mixin.attributes['occi.core.id']
+
+        #Registry identifier is the uuid key occi.handler assigns
+        #attribute 'occi.core.id' will be the snf-server id
 
         snf = ComputeClient(Config())
         vm_name = entity.attributes['occi.compute.hostname']
-        snf.create_server(vm_name, flavor_id, image_id)
-
-        print('Creating the virtual machine with id: ' + entity.identifier)
-        
+        info = snf.create_server(vm_name, flavor_id, image_id)
+        entity.attributes['occi.core.id'] = str(info['id'])
+        entity.attributes['occi.compute.cores'] = flavor.attributes['occi.compute.cores']
+        entity.attributes['occi.compute.memory'] = flavor.attributes['occi.compute.memory']
 
     def retrieve(self, entity, extras):
+        
         # triggering cyclades to retrieve up to date information
+
+        snf = ComputeClient(Config())
+
+        vm_id = int(entity.attributes['occi.core.id'])
+        vm_info = snf.get_server_details(vm_id)
+        vm_state = vm_info['status']
+        
+        status_dict = {'ACTIVE' : 'active',
+                       'STOPPED' : 'inactive',
+                       'ERROR' : 'inactive',
+                       'BUILD' : 'inactive',
+                       'DELETED' : 'inactive',
+                       }
+        
+        entity.attributes['occi.compute.state'] = status_dict[vm_state]
 
         if entity.attributes['occi.compute.state'] == 'inactive':
             entity.actions = [START]
@@ -70,10 +90,15 @@ class ComputeBackend(MyBackend):
         if entity.attributes['occi.compute.state'] == 'suspended':
             entity.actions = [START]
 
+        
+
+
     def delete(self, entity, extras):
-        # call the management framework to delete this compute instance...
-        print('Removing representation of virtual machine with id: '
-              + entity.identifier)
+        # delete vm with vm_id = entity.attributes['occi.core.id']
+        snf = ComputeClient(Config())
+        vm_id = int(entity.attributes['occi.core.id'])
+        snf.delete_server(vm_id)
+
 
     def action(self, entity, action, extras):
         if action not in entity.actions:
@@ -108,14 +133,15 @@ class MyAPP(Application):
     def __call__(self, environ, response):
         sec_obj = {'username': 'password'}
 
-
+        
         #Refresh registry entries with current Cyclades state
         snf = ComputeClient(Config())
 
+        '''
         images = snf.list_images()
         for image in images:
             IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
-            IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), OS_TEMPLATE, attributes = IMAGE_ATTRIBUTES)
+            IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE], attributes = IMAGE_ATTRIBUTES)
             self.register_backend(IMAGE, MixinBackend())
 
         flavors = snf.list_flavors()
@@ -125,11 +151,11 @@ class MyAPP(Application):
                                  'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
                                  'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
                                  }
-            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), RESOURCE_TEMPLATE, attributes = FLAVOR_ATTRIBUTES)
+            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
             self.register_backend(FLAVOR, MixinBackend())
-        
+            '''       
+
         #TODO show only current VM instances
-                
         
         return self._call_occi(environ, response, security=sec_obj, foo=None)
 
@@ -147,6 +173,24 @@ if __name__ == '__main__':
     APP.register_backend(RESOURCE_TEMPLATE, MixinBackend())
     APP.register_backend(OS_TEMPLATE, MixinBackend())
     
+    snf = ComputeClient(Config())
+    
+    images = snf.list_images()
+    for image in images:
+        IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
+        IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE], attributes = IMAGE_ATTRIBUTES)
+        APP.register_backend(IMAGE, MixinBackend())
+
+    flavors = snf.list_flavors()
+    for flavor in flavors:
+        FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
+                             'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
+                             'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
+                             'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
+                             }
+        FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
+        APP.register_backend(FLAVOR, MixinBackend())
+
  
     VALIDATOR_APP = validator(APP)
     HTTPD = make_server('', 8888, VALIDATOR_APP)
