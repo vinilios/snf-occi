@@ -1,253 +1,293 @@
-#!/usr/bin/env python
-
-from kamaki.clients.compute import ComputeClient
-from kamaki.config  import Config
-
-<<<<<<< HEAD
-from occi.core_model import Mixin
-=======
-from occi.core_model import Mixin, Resource, Link, Entity
->>>>>>> 592e811729d5f061377c854f645311e560ec4faa
-from occi.backend import ActionBackend, KindBackend, MixinBackend
-from occi.extensions.infrastructure import COMPUTE, START, STOP, SUSPEND, RESTART, RESOURCE_TEMPLATE, OS_TEMPLATE
-
-from occi.wsgi import Application
-
-from wsgiref.simple_server import make_server
-from wsgiref.validate import validator
 
 
-class MyBackend(KindBackend, ActionBackend):
-    '''
-    An very simple abstract backend which handles update and replace for
-    attributes. Support for links and mixins would need to added.
-    '''
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>
+    Log in to your Bitbucket account
+</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="description" content="Log in to your Bitbucket account." />
+  <meta name="keywords" content="code hosting free bitbucket mercurial subversion git free" />
+  <!--[if lt IE 9]>
+  <script src="https://dwz7u9t8u8usb.cloudfront.net/m/e14058e2cf3f/js/lib/html5.js"></script>
+  <![endif]-->
 
-    def update(self, old, new, extras):
-        # here you can check what information from new_entity you wanna bring
-        # into old_entity
+  <script>
+    (function (window) {
+      // prevent stray occurrences of `console.log` from causing errors in IE
+      var console = window.console || (window.console = {});
+      console.log || (console.log = function () {});
 
-        # trigger your hypervisor and push most recent information
-        print('Updating a resource with id: ' + old.identifier)
-        for item in new.attributes.keys():
-            old.attributes[item] = new.attributes[item]
+      var BB = window.BB || (window.BB = {});
+      BB.debug = false;
+      BB.cname = false;
+      BB.CANON_URL = 'https://bitbucket.org';
+      BB.MEDIA_URL = 'https://dwz7u9t8u8usb.cloudfront.net/m/e14058e2cf3f/';
+      BB.images = {
+        noAvatar: 'https://dwz7u9t8u8usb.cloudfront.net/m/e14058e2cf3f/img/no_avatar.png'
+      };
+      BB.user = {"isKbdShortcutsEnabled": true, "isSshEnabled": false};
+      BB.user.has = (function () {
+        var betaFeatures = [];
+        betaFeatures.push('repo2');
+        return function (feature) {
+          return _.contains(betaFeatures, feature);
+        };
+      }());
+      BB.targetUser = BB.user;
+  
+      BB.repo || (BB.repo = {});
+  
+    }(this));
+  </script>
 
-    def replace(self, old, new, extras):
-        print('Replacing a resource with id: ' + old.identifier)
-        old.attributes = {}
-        for item in new.attributes.keys():
-            old.attributes[item] = new.attributes[item]
-        old.attributes['occi.compute.state'] = 'inactive'
+  
 
 
-class ComputeBackend(MyBackend):
-    '''
-<<<<<<< HEAD
-    A Backend for compute instances.
-=======
-    Backend for Cyclades/Openstack compute instances
->>>>>>> 592e811729d5f061377c854f645311e560ec4faa
-    '''
+  <link rel="stylesheet" href="https://dwz7u9t8u8usb.cloudfront.net/m/e14058e2cf3f/bun/css/bundle.css"/>
 
-    def create(self, entity, extras):
+
+
+  <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Bitbucket" />
+  <link rel="icon" href="https://dwz7u9t8u8usb.cloudfront.net/m/e14058e2cf3f/img/logo_new.png" type="image/png" />
+  <link type="text/plain" rel="author" href="/humans.txt" />
+
+
+  
+    <script src="https://dwz7u9t8u8usb.cloudfront.net/m/e14058e2cf3f/bun/js/bundle.js"></script>
+  
+
+
+
+</head>
+
+<body id="" class="">
+  <script>
+    if (navigator.userAgent.indexOf(' AppleWebKit/') === -1) {
+      $('body').addClass('non-webkit')
+    }
+    $('body')
+      .addClass($.client.os.toLowerCase())
+      .addClass($.client.browser.toLowerCase())
+  </script>
+  <!--[if IE 8]>
+  <script>jQuery(document.body).addClass('ie8')</script>
+  <![endif]-->
+  <!--[if IE 9]>
+  <script>jQuery(document.body).addClass('ie9')</script>
+  <![endif]-->
+
+  <div id="wrapper">
+
+
+
+  <div id="header-wrap">
+    <div id="header">
+    <ul id="global-nav">
+      <li><a class="home" href="http://www.atlassian.com">Atlassian Home</a></li>
+      <li><a class="docs" href="http://confluence.atlassian.com/display/BITBUCKET">Documentation</a></li>
+      <li><a class="support" href="/support">Support</a></li>
+      <li><a class="blog" href="http://blog.bitbucket.org">Blog</a></li>
+      <li><a class="forums" href="http://groups.google.com/group/bitbucket-users">Forums</a></li>
+    </ul>
+    <a href="/" id="logo">Bitbucket by Atlassian</a>
+
+    <div id="main-nav">
     
-        for mixin in entity.mixins:
-<<<<<<< HEAD
-            print mixin.term
-            print mixin.attributes
-            if mixin.related[0].term == 'os_tpl':
-                image = mixin.related[0]
-                image_id = mixin.attributes['occi.core.id']
-            if mixin.related[0].term == 'resource_tpl':
-                flavor = mixin.related[0]
-                flavor_id = mixin.attributes['occi.core.id']
-                
-        
-        entity.attributes['occi.compute.state'] = 'active'
-        entity.actions = [STOP, SUSPEND, RESTART]
-
-        #TODO VM identifier
-=======
-            if mixin.related[0].term == 'os_tpl':
-                image = mixin
-                image_id = mixin.attributes['occi.core.id']
-            if mixin.related[0].term == 'resource_tpl':
-                flavor = mixin
-                flavor_id = mixin.attributes['occi.core.id']
-                
-        entity.attributes['occi.compute.state'] = 'active'
-        entity.actions = [STOP, SUSPEND, RESTART]
-
-        #Registry identifier is the uuid key occi.handler assigns
-        #attribute 'occi.core.id' will be the snf-server id
->>>>>>> 592e811729d5f061377c854f645311e560ec4faa
-
-        snf = ComputeClient(Config())
-        vm_name = entity.attributes['occi.compute.hostname']
-        info = snf.create_server(vm_name, flavor_id, image_id)
-        entity.attributes['occi.core.id'] = str(info['id'])
-<<<<<<< HEAD
-
-    def retrieve(self, entity, extras):
-        # triggering cyclades to retrieve up to date information
-
-=======
-        entity.attributes['occi.compute.cores'] = flavor.attributes['occi.compute.cores']
-        entity.attributes['occi.compute.memory'] = flavor.attributes['occi.compute.memory']
-
-    def retrieve(self, entity, extras):
-        
-        # triggering cyclades to retrieve up to date information
-
-        snf = ComputeClient(Config())
-
-        vm_id = int(entity.attributes['occi.core.id'])
-        vm_info = snf.get_server_details(vm_id)
-        vm_state = vm_info['status']
-        
-        status_dict = {'ACTIVE' : 'active',
-                       'STOPPED' : 'inactive',
-                       'ERROR' : 'inactive',
-                       'BUILD' : 'inactive',
-                       'DELETED' : 'inactive',
-                       }
-        
-        entity.attributes['occi.compute.state'] = status_dict[vm_state]
-
->>>>>>> 592e811729d5f061377c854f645311e560ec4faa
-        if entity.attributes['occi.compute.state'] == 'inactive':
-            entity.actions = [START]
-        if entity.attributes['occi.compute.state'] == 'active': 
-            entity.actions = [STOP, SUSPEND, RESTART]
-        if entity.attributes['occi.compute.state'] == 'suspended':
-            entity.actions = [START]
-
-<<<<<<< HEAD
-    def delete(self, entity, extras):
-        # call the management framework to delete this compute instance...
-        print('Removing representation of virtual machine with id: '
-              + entity.identifier)
-=======
+      <ul class="clearfix">
+        <li><a href="/plans">Pricing &amp; signup</a></li>
+        <li><a id="explore-link" href="/explore">Explore Bitbucket</a></li>
+        <li class="active"><a href="/account/signin/?next=/account/signin/%3Fnext%3D/nemo32/snf-occi/src/592e811729d5/snf-occi-server.py">Log in</a></li>
         
 
+<li class="search-box">
+  
+    <form action="/repo/all">
+      <input type="search" results="5" autosave="bitbucket-explore-search"
+             name="name" id="searchbox"
+             placeholder="owner/repo" />
+  
+  </form>
+</li>
 
-    def delete(self, entity, extras):
-        # delete vm with vm_id = entity.attributes['occi.core.id']
-        snf = ComputeClient(Config())
-        vm_id = int(entity.attributes['occi.core.id'])
-        snf.delete_server(vm_id)
-
->>>>>>> 592e811729d5f061377c854f645311e560ec4faa
-
-    def action(self, entity, action, extras):
-        if action not in entity.actions:
-            raise AttributeError("This action is currently no applicable.")
-        elif action == START:
-            entity.attributes['occi.compute.state'] = 'active'
-            entity.actions = [STOP, SUSPEND, RESTART]
-            # read attributes from action and do something with it :-)
-            print('Starting virtual machine with id' + entity.identifier)
-        elif action == STOP:
-            entity.attributes['occi.compute.state'] = 'inactive'
-            entity.actions = [START]
-            # read attributes from action and do something with it :-)
-            print('Stopping virtual machine with id' + entity.identifier)
-        elif action == RESTART:
-            entity.actions = [STOP, SUSPEND, RESTART]
-            entity.attributes['occi.compute.state'] = 'active'
-            # read attributes from action and do something with it :-)
-            print('Restarting virtual machine with id' + entity.identifier)
-        elif action == SUSPEND:
-            entity.attributes['occi.compute.state'] = 'suspended'
-            entity.actions = [START]
-            # read attributes from action and do something with it :-)
-            print('Suspending virtual machine with id' + entity.identifier)
-
-
-class MyAPP(Application):
-    '''
-    An OCCI WSGI application.
-    '''
-
-    def __call__(self, environ, response):
-        sec_obj = {'username': 'password'}
-
-<<<<<<< HEAD
-
-        #Refresh registry entries with current Cyclades state
-        snf = ComputeClient(Config())
-
-=======
-        
-        #Refresh registry entries with current Cyclades state
-        snf = ComputeClient(Config())
-
-        '''
->>>>>>> 592e811729d5f061377c854f645311e560ec4faa
-        images = snf.list_images()
-        for image in images:
-            IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
-            IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE], attributes = IMAGE_ATTRIBUTES)
-            self.register_backend(IMAGE, MixinBackend())
-
-        flavors = snf.list_flavors()
-        for flavor in flavors:
-            FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
-                                 'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
-                                 'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
-                                 'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
-                                 }
-            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
-            self.register_backend(FLAVOR, MixinBackend())
-<<<<<<< HEAD
-        
-        #TODO show only current VM instances
-                
-=======
-            '''       
-
-        #TODO show only current VM instances
->>>>>>> 592e811729d5f061377c854f645311e560ec4faa
-        
-        return self._call_occi(environ, response, security=sec_obj, foo=None)
-
-if __name__ == '__main__':
-
-    APP = MyAPP()
-
-    COMPUTE_BACKEND = ComputeBackend()
-
-    APP.register_backend(COMPUTE, COMPUTE_BACKEND)
-    APP.register_backend(START, COMPUTE_BACKEND)
-    APP.register_backend(STOP, COMPUTE_BACKEND)
-    APP.register_backend(RESTART, COMPUTE_BACKEND)
-    APP.register_backend(SUSPEND, COMPUTE_BACKEND)
-    APP.register_backend(RESOURCE_TEMPLATE, MixinBackend())
-    APP.register_backend(OS_TEMPLATE, MixinBackend())
+      </ul>
     
-<<<<<<< HEAD
-=======
-    snf = ComputeClient(Config())
+    </div>
+
+  
+
+    </div>
+  </div>
+
+    <div id="header-messages">
+  
+  
     
-    images = snf.list_images()
-    for image in images:
-        IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
-        IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE], attributes = IMAGE_ATTRIBUTES)
-        APP.register_backend(IMAGE, MixinBackend())
+    
+    
+    
+  
 
-    flavors = snf.list_flavors()
-    for flavor in flavors:
-        FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
-                             'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
-                             'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
-                             'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
-                             }
-        FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
-        APP.register_backend(FLAVOR, MixinBackend())
+    
+   </div>
 
->>>>>>> 592e811729d5f061377c854f645311e560ec4faa
- 
-    VALIDATOR_APP = validator(APP)
-    HTTPD = make_server('', 8888, VALIDATOR_APP)
-    HTTPD.serve_forever()
 
+
+    <div id="content">
+      <div id="sign-in">
+      
+
+      
+  
+
+  <h1>Log in</h1>
+  <div class="standard newform">
+    
+    <form action="/account/signin/" method="post"><div style='display:none'><input type='hidden' name='csrfmiddlewaretoken' value='ccbf688583139b178be00ff634ee0ddc' /></div>
+      <input type="hidden" name="next" value="/nemo32/snf-occi/src/592e811729d5/snf-occi-server.py" />
+    
+    
+      <div class="required">
+        <label for="id_username">Username or email</label>
+        <input type="text" id="id_username" name="username" autofocus="autofocus" />
+      </div>
+    
+    
+      <div class="required">
+        <label for="id_password">Password</label>
+        <input type="password" id="id_password" name="password" />
+        <p class="description"><a href="/account/password/reset/" tabindex="-1">Reset password</a></p>
+      </div>
+    
+      <div class="submit">
+        <input type="submit" value="Log in" name="submit" />
+      </div>
+    </form>
+  </div>
+
+  <div class="opensocial">
+    
+
+<form id="openid_form" action="/account/openid/redirect/" class="newform">
+<div><input name="next" type="hidden" value="/nemo32/snf-occi/src/592e811729d5/snf-occi-server.py" /></div>
+  <label>OpenID provider</label>
+  <ul class="badges">
+    <li><a href="/account/openid/redirect/?openid_provider=https%3A%2F%2Fwww.google.com%2Faccounts%2Fo8%2Fid&next=/nemo32/snf-occi/src/592e811729d5/snf-occi-server.py"
+           title="Google">Google</a></li>
+    <li><a href="/account/openid/redirect/?openid_provider=http%3A%2F%2Fyahoo.com%2F&next=/nemo32/snf-occi/src/592e811729d5/snf-occi-server.py"
+           title="Yahoo!">Yahoo!</a></li>
+    <li><a href="#aol" title="AOL" data-url="http://openid.aol.com/{id}">AOL</a></li>
+    <li><a href="#openid" title="OpenID" data-url="{id}">OpenID</a></li>
+    <li><a href="#myopenid" title="MyOpenID" data-url="http://{id}.myopenid.com/">MyOpenID</a></li>
+    <li><a href="#livejournal" title="LiveJournal" data-url="http://{id}.livejournal.com/">LiveJournal</a></li>
+    <li><a href="#flickr" title="Flickr" data-url="http://flickr.com/{id}/">Flickr</a></li>
+    <li><a href="#wordpress" title="WordPress" data-url="http://{id}.wordpress.com/">WordPress</a></li>
+    <li><a href="#verisign" title="VeriSign" data-url="http://{id}.pip.verisignlabs.com/">VeriSign</a></li>
+    <li><a href="#claimid" title="ClaimID" data-url="http://claimid.com/{id}">ClaimID</a></li>
+  </ul>
+  <div class="input-group">
+    <div>
+      <ul class="inputs">
+        <li class="required" id="aol">
+          <label for="aol-username">Username</label>
+          <input type="text" id="aol-username" name="aol-username" />
+        </li>
+        <li class="required" id="openid">
+          <label for="openid-url">OpenID URL</label>
+          <input type="url" id="openid-url" name="openid-url" />
+        </li>
+        <li class="required" id="myopenid">
+          <label for="myopenid-username">Username</label>
+          <input type="text" id="myopenid-username" name="myopenid-username" />
+        </li>
+        <li class="required" id="livejournal">
+          <label for="livejournal-username">Username</label>
+          <input type="text" id="livejournal-username" name="livejournal-username" />
+        </li>
+        <li class="required" id="flickr">
+          <label for="flickr-username">Username</label>
+          <input type="text" id="flickr-username" name="flickr-username" />
+        </li>
+        <li class="required" id="wordpress">
+          <label for="wordpress-username">Username</label>
+          <input type="text" id="wordpress-username" name="wordpress-username" />
+        </li>
+        <li class="required" id="verisign">
+          <label for="verisign-username">Username</label>
+          <input type="text" id="verisign-username" name="verisign-username" />
+        </li>
+        <li class="required" id="claimid">
+          <label for="claimid-username">Username</label>
+          <input type="text" id="claimid-username" name="claimid-username" />
+        </li>
+      </ul>
+    </div>
+    <div class="submit">
+      <input type="hidden" id="openid_provider" name="openid_provider" />
+      <input type="hidden" id="openid_username" name="openid_username" />
+      <input type="submit" id="openid_submit" value="Log in" />
+    </div>
+  </div>
+</form>
+
+  </div>
+  <p>Need an account? <a href="/plans">Sign up now!</a></p>
+  <p class="show-open-id">Switch to <a href="#openid-signin">OpenID sign-in</a><noscript> (enable JavaScript to use this feature)</noscript></p>
+  <p class="show-standard-signin">Switch to <a href="#standard-signin">standard sign-in</a></p>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div id="footer">
+    <ul id="footer-nav">
+      <li>Copyright © 2012 <a href="http://atlassian.com">Atlassian</a></li>
+      <li><a href="http://www.atlassian.com/hosted/terms.jsp">Terms of Service</a></li>
+      <li><a href="http://www.atlassian.com/about/privacy.jsp">Privacy</a></li>
+      <li><a href="//bitbucket.org/site/master/issues/new">Report a Bug to Bitbucket</a></li>
+      <li><a href="http://confluence.atlassian.com/x/IYBGDQ">API</a></li>
+      <li><a href="http://status.bitbucket.org/">Server Status</a></li>
+    </ul>
+    <ul id="social-nav">
+      <li class="blog"><a href="http://blog.bitbucket.org">Bitbucket Blog</a></li>
+      <li class="twitter"><a href="http://www.twitter.com/bitbucket">Twitter</a></li>
+    </ul>
+    <h5>We run</h5>
+    <ul id="technologies">
+      <li><a href="http://www.djangoproject.com/">Django 1.3.1</a></li>
+      <li><a href="//bitbucket.org/jespern/django-piston/">Piston 0.3dev</a></li>
+      <li><a href="http://git-scm.com/">Git 1.7.6</a></li>
+      <li><a href="http://www.selenic.com/mercurial/">Hg 1.9.1</a></li>
+      <li><a href="http://www.python.org">Python 2.7.2</a></li>
+      <li>cb37df9fcb23 | bitbucket02</li>
+    </ul>
+  </div>
+
+  <script src="https://dwz7u9t8u8usb.cloudfront.net/m/e14058e2cf3f/js/lib/global.js"></script>
+
+
+
+
+
+
+  <script>
+    BB.gaqPush(['_trackPageview']);
+  
+    BB.gaqPush(['atl._trackPageview']);
+
+    
+
+    
+
+    (function () {
+        var ga = document.createElement('script');
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        ga.setAttribute('async', 'true');
+        document.documentElement.firstChild.appendChild(ga);
+    }());
+  </script>
+
+</body>
+</html>
