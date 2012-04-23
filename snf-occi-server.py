@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 from kamaki.clients.compute import ComputeClient
+from kamaki.clients.cyclades import CycladesClient
 from kamaki.config  import Config
 
-from occi.core_model import Mixin, Resource, Link, Entity
+from occi.core_model import Mixin
 from occi.backend import ActionBackend, KindBackend, MixinBackend
 from occi.extensions.infrastructure import COMPUTE, START, STOP, SUSPEND, RESTART, RESOURCE_TEMPLATE, OS_TEMPLATE
 
@@ -90,8 +91,6 @@ class ComputeBackend(MyBackend):
         if entity.attributes['occi.compute.state'] == 'suspended':
             entity.actions = [START]
 
-        
-
 
     def delete(self, entity, extras):
         # delete vm with vm_id = entity.attributes['occi.core.id']
@@ -101,28 +100,34 @@ class ComputeBackend(MyBackend):
 
 
     def action(self, entity, action, extras):
+        
+        client = CycladesClient(Config())
+        vm_id = int(entity.attributes['occi.core.id'])
+
         if action not in entity.actions:
             raise AttributeError("This action is currently no applicable.")
+
         elif action == START:
-            entity.attributes['occi.compute.state'] = 'active'
-            entity.actions = [STOP, SUSPEND, RESTART]
-            # read attributes from action and do something with it :-)
-            print('Starting virtual machine with id' + entity.identifier)
+
+            print "Starting VM"
+            client.start_server(vm_id)
+
+
         elif action == STOP:
-            entity.attributes['occi.compute.state'] = 'inactive'
-            entity.actions = [START]
-            # read attributes from action and do something with it :-)
-            print('Stopping virtual machine with id' + entity.identifier)
+
+            print "Stopping VM"
+            client.shutdown_server(vm_id)
+            
         elif action == RESTART:
-            entity.actions = [STOP, SUSPEND, RESTART]
-            entity.attributes['occi.compute.state'] = 'active'
-            # read attributes from action and do something with it :-)
-            print('Restarting virtual machine with id' + entity.identifier)
+            snf.reboot_server(vm_id)
+
+
         elif action == SUSPEND:
+
+            #TODO VM suspending
+
             entity.attributes['occi.compute.state'] = 'suspended'
             entity.actions = [START]
-            # read attributes from action and do something with it :-)
-            print('Suspending virtual machine with id' + entity.identifier)
 
 
 class MyAPP(Application):
@@ -131,33 +136,8 @@ class MyAPP(Application):
     '''
 
     def __call__(self, environ, response):
-        sec_obj = {'username': 'password'}
 
-        
-        #Refresh registry entries with current Cyclades state
-        snf = ComputeClient(Config())
-
-        '''
-        images = snf.list_images()
-        for image in images:
-            IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
-            IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE], attributes = IMAGE_ATTRIBUTES)
-            self.register_backend(IMAGE, MixinBackend())
-
-        flavors = snf.list_flavors()
-        for flavor in flavors:
-            FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
-                                 'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
-                                 'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
-                                 'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
-                                 }
-            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
-            self.register_backend(FLAVOR, MixinBackend())
-            '''       
-
-        #TODO show only current VM instances
-        
-        return self._call_occi(environ, response, security=sec_obj, foo=None)
+        return self._call_occi(environ, response)
 
 if __name__ == '__main__':
 
