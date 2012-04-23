@@ -68,7 +68,6 @@ class ComputeBackend(MyBackend):
     def retrieve(self, entity, extras):
         
         # triggering cyclades to retrieve up to date information
-
         snf = ComputeClient(Config())
 
         vm_id = int(entity.attributes['occi.core.id'])
@@ -93,6 +92,7 @@ class ComputeBackend(MyBackend):
 
 
     def delete(self, entity, extras):
+
         # delete vm with vm_id = entity.attributes['occi.core.id']
         snf = ComputeClient(Config())
         vm_id = int(entity.attributes['occi.core.id'])
@@ -108,26 +108,22 @@ class ComputeBackend(MyBackend):
             raise AttributeError("This action is currently no applicable.")
 
         elif action == START:
-
             print "Starting VM"
             client.start_server(vm_id)
 
 
         elif action == STOP:
-
             print "Stopping VM"
             client.shutdown_server(vm_id)
             
         elif action == RESTART:
+            print "Restarting VM"
             snf.reboot_server(vm_id)
 
 
         elif action == SUSPEND:
-
             #TODO VM suspending
-
-            entity.attributes['occi.compute.state'] = 'suspended'
-            entity.actions = [START]
+            print "Suspending VM"
 
 
 class MyAPP(Application):
@@ -137,12 +133,15 @@ class MyAPP(Application):
 
     def __call__(self, environ, response):
 
-        return self._call_occi(environ, response)
+        token =  environ['HTTP_AUTH_TOKEN']
+
+        # token will be represented in self.extras
+
+        return self._call_occi(environ, response, token)
 
 if __name__ == '__main__':
 
     APP = MyAPP()
-
     COMPUTE_BACKEND = ComputeBackend()
 
     APP.register_backend(COMPUTE, COMPUTE_BACKEND)
@@ -154,7 +153,6 @@ if __name__ == '__main__':
     APP.register_backend(OS_TEMPLATE, MixinBackend())
     
     snf = ComputeClient(Config())
-    
     images = snf.list_images()
     for image in images:
         IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
