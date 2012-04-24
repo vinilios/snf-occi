@@ -58,7 +58,10 @@ class ComputeBackend(MyBackend):
         #Registry identifier is the uuid key occi.handler assigns
         #attribute 'occi.core.id' will be the snf-server id
 
-        snf = ComputeClient(Config())
+        conf = Config()
+        conf.set('token',extras['token'])
+        snf = ComputeClient(conf)
+
         vm_name = entity.attributes['occi.compute.hostname']
         info = snf.create_server(vm_name, flavor_id, image_id)
         entity.attributes['occi.core.id'] = str(info['id'])
@@ -68,7 +71,9 @@ class ComputeBackend(MyBackend):
     def retrieve(self, entity, extras):
         
         # triggering cyclades to retrieve up to date information
-        snf = ComputeClient(Config())
+        conf = Config()
+        conf.set('token',extras['token'])
+        snf = ComputeClient(conf)
 
         vm_id = int(entity.attributes['occi.core.id'])
         vm_info = snf.get_server_details(vm_id)
@@ -94,14 +99,20 @@ class ComputeBackend(MyBackend):
     def delete(self, entity, extras):
 
         # delete vm with vm_id = entity.attributes['occi.core.id']
-        snf = ComputeClient(Config())
+        conf = Config()
+        conf.set('token',extras['token'])
+        snf = ComputeClient(conf)
+
         vm_id = int(entity.attributes['occi.core.id'])
         snf.delete_server(vm_id)
 
 
     def action(self, entity, action, extras):
-        
-        client = CycladesClient(Config())
+
+        conf = Config()
+        conf.set('token',extras['token'])
+        client = CycladesClient(conf)
+
         vm_id = int(entity.attributes['occi.core.id'])
 
         if action not in entity.actions:
@@ -132,12 +143,12 @@ class MyAPP(Application):
     '''
 
     def __call__(self, environ, response):
-
-        token =  environ['HTTP_AUTH_TOKEN']
+        
+        print 'Using authentication token:'
+        print environ['HTTP_AUTH_TOKEN']
 
         # token will be represented in self.extras
-
-        return self._call_occi(environ, response, token)
+        return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'])
 
 if __name__ == '__main__':
 
@@ -153,6 +164,7 @@ if __name__ == '__main__':
     APP.register_backend(OS_TEMPLATE, MixinBackend())
     
     snf = ComputeClient(Config())
+
     images = snf.list_images()
     for image in images:
         IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
