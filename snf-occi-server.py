@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
+from registry import snfRegistry
 from kamaki.clients.compute import ComputeClient
 from kamaki.clients.cyclades import CycladesClient
 from kamaki.config  import Config
 
-from occi.core_model import Mixin
+from occi.core_model import Mixin,Entity,Resource
 from occi.backend import ActionBackend, KindBackend, MixinBackend
 from occi.extensions.infrastructure import COMPUTE, START, STOP, SUSPEND, RESTART, RESOURCE_TEMPLATE, OS_TEMPLATE
 
@@ -143,16 +144,17 @@ class MyAPP(Application):
     '''
 
     def __call__(self, environ, response):
-        
-        print 'Using authentication token:'
-        print environ['HTTP_AUTH_TOKEN']
+
+        #TODO up-to-date compute instances                
 
         # token will be represented in self.extras
         return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'])
 
 if __name__ == '__main__':
 
-    APP = MyAPP()
+    APP = MyAPP(registry = snfRegistry())
+
+
     COMPUTE_BACKEND = ComputeBackend()
 
     APP.register_backend(COMPUTE, COMPUTE_BACKEND)
