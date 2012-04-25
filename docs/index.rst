@@ -50,8 +50,8 @@ Due to OCCI's structure there cannot be straightforward mapping to Cyclades/Open
 
 **Note:** Quantum API support is being planned.
 
-OCCI operations list
-***********************
+OCCI operations
+****************
 
 Below you can see the required procedures/operations for OCCI compatibility.
    
