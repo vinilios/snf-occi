@@ -3,10 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to snf-occi's documentation!
+snf-occi's documentation!
 ====================================
 
-snf-occi implements OCCI specifications to synnefo's API in order to achieve greater interoperability in common tasks refering cyclades management.
+**snf-occi** implements OCCI specifications to synnefo's API in order to achieve greater interoperability in common tasks refering cyclades management. This module is a translation bridge between OCCI and Openstack API and is designed to be as independent as possible from the rest IaaS, providing an OCCI compatibility layer to other services using Openstack API. 
+
+**snf-occi** is based in modules provided by kamaki cli-tool when dealing with REST API calls to Openstack.
 
 .. toctree::
    :maxdepth: 2
@@ -23,40 +25,35 @@ OCCI and Cyclades
 -----------------
 OCCI implementation in Cyclades is going to be based in the **OCCI Infrastructure** specifications, in which common Cloud IaaS components are described. Below you can see the matching components between OCCI and Cyclades:
 
-+----------------+------------------+
-|OCCI            |Cyclades          |
-+================+==================+
-|Compute linked  |Synnefo servers   |
-|to Storage      |                  |
-+----------------+------------------+
-|Mixin           |Synnefo images    |
-|                |                  |
-+----------------+------------------+
-|Mixin           |Synnefo flavors   |
-+----------------+------------------+
-|Network         |Network and       |
-|                |NetworkInterfaces |
-|                |from              |
-|                |synnefo.db.models |
-+----------------+------------------+
-|NetworkInterface|NetworkLink in    |
-|                |synnefo.db.models |
-+----------------+------------------+
++-------------------------+-------------------------+
+|OCCI                     |Cyclades                 |
++=========================+=========================+
+|Compute                  |Synnefo servers          |
++-------------------------+-------------------------+
+|OS Template              |Synnefo images           |
++-------------------------+-------------------------+
+|Resource Template        |Synnefo flavors          |
++-------------------------+-------------------------+
+|Networking               |NA                       |
++-------------------------+-------------------------+
+|Storage                  |NA                       |
++-------------------------+-------------------------+
+
+
  
 **Note:** Metadata info in synnefo's servers cannot be represented (clearly) using OCCI's components.
 
 
-Call mapping from OCCI to Cyclades API
----------------------------------------
-Due to OCCI's structure there cannot be straightforward mapping to Cyclades/OpenStack API. The missing elements are:
+OCCI requirements
+------------------
+Due to OCCI's structure there cannot be straightforward mapping to Cyclades/OpenStack API. The missing elements are networking and storage capabilities using current Cyclades API.
 
-* Networking capabilities using current Cyclades API (networking is supported, but not in OCCI's format)
-* OCCI seperates the compute resource from the storage or image/flavor. As a result synnefo's servers cannot be represented only with OCCI's Compute.
+**Note:** Quantum API support is being planned.
 
-OCCI operations-Mapping
+OCCI operations list
 ***********************
 
-Below you can see the required procedures/operations for OCCI compatibility, and their mappings to Cyclades API (if possible).
+Below you can see the required procedures/operations for OCCI compatibility.
    
 * Handling the query interface
    * Query interface must be found under path /-/
@@ -78,34 +75,16 @@ Below you can see the required procedures/operations for OCCI compatibility, and
 
 * Operations on Resource instances
    * Creating a resource instance
-       * Compute: api.server.create_server()
-       * Network: -
-       * Storage: -
    * Retrieving a resource instance
-       * Compute: api.server.get_server_details()
-       * Network: -
-       * Storage: -
    * Partial update of a resource instance
-       * Compute: api.actions.resize()
-       * Network: -
-       * Storage: -
    * Full update of a resource instance
-       * Compute: -
-       * Network: -
-       * Storage: -
    * Delete a resource instance
-       * Compute: api.server.delete_server()
-       * Network: -
-       * Storage: -
    * Triggering an action on a resource instance
-       * Compute: api.actions.start(), api.actions.shutdown(), api.actions.reboot()
-       * Network: -
-       * Storage: -
 
-* Handling Link instances **(not well-defined in Cyclades API)**
-      * Inline creation of a Link instance
-      * Retrieving Resource instances with defined Links
-      * Creating of Link Resource instance
+* Handling Link instances
+   * Inline creation of a Link instance
+   * Retrieving Resource instances with defined Links
+   * Creating of Link Resource instance
 
 
 OCCI client/server library
@@ -117,11 +96,10 @@ Features:
 ---------
 
 * It includes a REST API service with the OCCI specifications already implemented
-* It only requires a custom backend to interact with Cyclades
-* Being a python wsgi application, occi-py is easily deployed with Django or with its default web-server (tornado).
+* It only requires a custom backend and registry to interact with Cyclades
+* Implements a simple web frontend server with support for Tornado WSGI
 
 Package on pypi: `OCCI 0.6 <http://pypi.python.org/pypi/occi/0.6>`_
-
 
 
 Indices and tables
