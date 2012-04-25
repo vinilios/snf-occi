@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-from registry import snfRegistry
+from snfOCCI.registry import snfRegistry
+from snfOCCI.compute import ComputeBackend
+
 from kamaki.clients.compute import ComputeClient
 from kamaki.clients.cyclades import CycladesClient
 from kamaki.config  import Config
@@ -13,7 +15,7 @@ from occi.wsgi import Application
 from wsgiref.simple_server import make_server
 from wsgiref.validate import validator
 
-from compute import ComputeBackend
+
 
 
 class MyAPP(Application):
