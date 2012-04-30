@@ -50,7 +50,7 @@ class ComputeBackend(MyBackend):
         conf.set('token',extras['token'])
         snf = ComputeClient(conf)
 
-        vm_name = entity.attributes['occi.compute.hostname']
+        vm_name = entity.attributes['occi.core.title']
         info = snf.create_server(vm_name, flavor_id, image_id)
         entity.attributes['occi.core.id'] = str(info['id'])
         entity.attributes['occi.compute.architecture'] = SERVER_CONFIG['compute_arch']
