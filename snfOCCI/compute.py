@@ -16,6 +16,8 @@ class MyBackend(KindBackend, ActionBackend):
     attributes. Support for links and mixins would need to added.
     '''
 
+    # Update and Replace compute instances not supported by Cyclades
+
     def update(self, old, new, extras):
         raise AttributeError("This action is currently no applicable.")
 
@@ -59,6 +61,7 @@ class ComputeBackend(MyBackend):
     def retrieve(self, entity, extras):
         
         # triggering cyclades to retrieve up to date information
+
         conf = Config()
         conf.set('token',extras['token'])
         snf = ComputeClient(conf)

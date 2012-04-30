@@ -57,10 +57,11 @@ if __name__ == '__main__':
 
     flavors = snf.list_flavors()
     for flavor in flavors:
+        details = snf.get_flavor_details(flavor['id'])
         FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
-                             'occi.compute.cores': snf.get_flavor_details(flavor['id'])['cpu'],
-                             'occi.compute.memory': snf.get_flavor_details(flavor['id'])['ram'],
-                             'occi.storage.size': snf.get_flavor_details(flavor['id'])['disk'],
+                             'occi.compute.cores': details['cpu'],
+                             'occi.compute.memory': details['ram'],
+                             'occi.storage.size': details['disk'],
                              }
         FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
         APP.register_backend(FLAVOR, MixinBackend())
