@@ -2,6 +2,7 @@
 
 from snfOCCI.registry import snfRegistry
 from snfOCCI.compute import ComputeBackend
+from snfOCCI.config import SERVER_CONFIG
 
 from kamaki.clients.compute import ComputeClient
 from kamaki.clients.cyclades import CycladesClient
@@ -36,7 +37,6 @@ class MyAPP(Application):
 if __name__ == '__main__':
 
     APP = MyAPP(registry = snfRegistry())
-
     COMPUTE_BACKEND = ComputeBackend()
 
     APP.register_backend(COMPUTE, COMPUTE_BACKEND)
@@ -67,6 +67,6 @@ if __name__ == '__main__':
 
  
     VALIDATOR_APP = validator(APP)
-    HTTPD = make_server('', 8888, VALIDATOR_APP)
+    HTTPD = make_server('', SERVER_CONFIG['port'], VALIDATOR_APP)
     HTTPD.serve_forever()
 

@@ -1,3 +1,5 @@
+from snfOCCI.config import SERVER_CONFIG
+
 from kamaki.clients.compute import ComputeClient
 from kamaki.clients.cyclades import CycladesClient
 from kamaki.config  import Config
@@ -15,20 +17,10 @@ class MyBackend(KindBackend, ActionBackend):
     '''
 
     def update(self, old, new, extras):
-        # here you can check what information from new_entity you wanna bring
-        # into old_entity
-
-        # trigger your hypervisor and push most recent information
-        print('Updating a resource with id: ' + old.identifier)
-        for item in new.attributes.keys():
-            old.attributes[item] = new.attributes[item]
+        raise AttributeError("This action is currently no applicable.")
 
     def replace(self, old, new, extras):
-        print('Replacing a resource with id: ' + old.identifier)
-        old.attributes = {}
-        for item in new.attributes.keys():
-            old.attributes[item] = new.attributes[item]
-        old.attributes['occi.compute.state'] = 'inactive'
+        raise AttributeError("This action is currently no applicable.")
 
 
 class ComputeBackend(MyBackend):
@@ -46,8 +38,8 @@ class ComputeBackend(MyBackend):
                 flavor = mixin
                 flavor_id = mixin.attributes['occi.core.id']
                 
-        entity.attributes['occi.compute.state'] = 'active'
-        entity.actions = [STOP, SUSPEND, RESTART]
+        entity.attributes['occi.compute.state'] = 'inactive'
+        entity.actions = [START]
 
         #Registry identifier is the uuid key occi.handler assigns
         #attribute 'occi.core.id' will be the snf-server id
@@ -59,8 +51,10 @@ class ComputeBackend(MyBackend):
         vm_name = entity.attributes['occi.compute.hostname']
         info = snf.create_server(vm_name, flavor_id, image_id)
         entity.attributes['occi.core.id'] = str(info['id'])
+        entity.attributes['occi.compute.architecture'] = SERVER_CONFIG['compute_arch']
         entity.attributes['occi.compute.cores'] = flavor.attributes['occi.compute.cores']
         entity.attributes['occi.compute.memory'] = flavor.attributes['occi.compute.memory']
+        entity.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':info['id']}
 
     def retrieve(self, entity, extras):
         
@@ -127,5 +121,4 @@ class ComputeBackend(MyBackend):
 
 
         elif action == SUSPEND:
-            #TODO VM suspending
-            print "Suspending VM"
+            raise AttributeError("This actions is currently no applicable")
