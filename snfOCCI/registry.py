@@ -8,5 +8,3 @@ class snfRegistry(registry.NonePersistentRegistry):
         resource.identifier = key
 
         super(snfRegistry, self).add_resource(key, resource, extras)
-
-    

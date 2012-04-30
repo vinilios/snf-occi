@@ -93,6 +93,8 @@ class ComputeBackend(MyBackend):
 
     def delete(self, entity, extras):
 
+        #Deleting compute instance
+
         conf = Config()
         conf.set('token',extras['token'])
         snf = ComputeClient(conf)
@@ -102,6 +104,8 @@ class ComputeBackend(MyBackend):
 
 
     def action(self, entity, action, extras):
+
+        #Triggering action to compute instances
 
         conf = Config()
         conf.set('token',extras['token'])
