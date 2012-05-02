@@ -1,11 +1,7 @@
 from snfOCCI.config import SERVER_CONFIG
 
-from kamaki.clients.compute import ComputeClient
-from kamaki.clients.cyclades import CycladesClient
-from kamaki.config  import Config
-
 from occi.backend import ActionBackend, KindBackend
-from occi.extensions.infrastructure import COMPUTE, START, STOP, SUSPEND, RESTART
+from occi.extensions.infrastructure import START, STOP, SUSPEND, RESTART
 from occi.exceptions import HTTPError
 
 
@@ -37,7 +33,6 @@ class ComputeBackend(MyBackend):
 
             for mixin in entity.mixins:
                 if mixin.related[0].term == 'os_tpl':
-                    image = mixin
                     image_id = mixin.attributes['occi.core.id']
                 if mixin.related[0].term == 'resource_tpl':
                     flavor = mixin
