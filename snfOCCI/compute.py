@@ -16,10 +16,10 @@ class MyBackend(KindBackend, ActionBackend):
     # Updating and Replacing compute instances not supported by Cyclades
 
     def update(self, old, new, extras):
-        raise AttributeError("This action is currently no applicable.")
+        raise HTTPError(501, "Update is currently no applicable")
 
     def replace(self, old, new, extras):
-        raise AttributeError("This action is currently no applicable.")
+        raise HTTPError(501, "Replace is currently no applicable")
 
 
 class ComputeBackend(MyBackend):
