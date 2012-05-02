@@ -24,18 +24,16 @@ class MyAPP(Application):
     An OCCI WSGI application.
     '''
 
-    def refresh_images(self):
+    def refresh_images(self, snf, client):
 
-        snf = ComputeClient(Config())
         images = snf.list_images()
         for image in images:
             IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
             IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE], attributes = IMAGE_ATTRIBUTES)
             self.register_backend(IMAGE, MixinBackend())
 
-    def refresh_flavors(self):
+    def refresh_flavors(self, snf, client):
         
-        snf = ComputeClient(Config())
         flavors = snf.list_flavors()
         for flavor in flavors:
             details = snf.get_flavor_details(flavor['id'])
@@ -50,13 +48,17 @@ class MyAPP(Application):
 
     def __call__(self, environ, response):
 
-        #Up-to-date flavors and images
+        conf = Config()
+        conf.set('token',environ['HTTP_AUTH_TOKEN'])
+        compClient = ComputeClient(conf)
+        cyclClient = CycladesClient(conf)
 
-        self.refresh_images()
-        self.refresh_flavors()
+        #Up-to-date flavors and images
+        self.refresh_images(compClient, cyclClient)
+        self.refresh_flavors(compClient, cyclClient)
 
         # token will be represented in self.extras
-        return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'])
+        return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'], snf = compClient, client = cyclClient)
 
 
 if __name__ == '__main__':

@@ -12,10 +12,6 @@ from occi.exceptions import HTTPError
 #Compute Backend for snf-occi-server
 
 class MyBackend(KindBackend, ActionBackend):
-    '''
-    An very simple abstract backend which handles update and replace for
-    attributes. Support for links and mixins would need to added.
-    '''
 
     # Updating and Replacing compute instances not supported by Cyclades
 
@@ -34,37 +30,39 @@ class ComputeBackend(MyBackend):
     def create(self, entity, extras):
 
         #Creating new compute instance
-    
-        for mixin in entity.mixins:
-            if mixin.related[0].term == 'os_tpl':
-                image = mixin
-                image_id = mixin.attributes['occi.core.id']
-            if mixin.related[0].term == 'resource_tpl':
-                flavor = mixin
-                flavor_id = mixin.attributes['occi.core.id']
-                
-        entity.attributes['occi.compute.state'] = 'inactive'
-        entity.actions = [START]
+        
+        try:
 
-        conf = Config()
-        conf.set('token',extras['token'])
-        snf = ComputeClient(conf)
+            snf = extras['snf']
 
-        vm_name = entity.attributes['occi.core.title']
-        info = snf.create_server(vm_name, flavor_id, image_id)
-        entity.attributes['occi.core.id'] = str(info['id'])
-        entity.attributes['occi.compute.architecture'] = SERVER_CONFIG['compute_arch']
-        entity.attributes['occi.compute.cores'] = flavor.attributes['occi.compute.cores']
-        entity.attributes['occi.compute.memory'] = flavor.attributes['occi.compute.memory']
-        entity.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':info['id']}
+            for mixin in entity.mixins:
+                if mixin.related[0].term == 'os_tpl':
+                    image = mixin
+                    image_id = mixin.attributes['occi.core.id']
+                if mixin.related[0].term == 'resource_tpl':
+                    flavor = mixin
+                    flavor_id = mixin.attributes['occi.core.id']
+
+            vm_name = entity.attributes['occi.core.title']
+            info = snf.create_server(vm_name, flavor_id, image_id)
+
+            entity.actions = [START]
+            entity.attributes['occi.compute.state'] = 'inactive'
+            entity.attributes['occi.core.id'] = str(info['id'])
+            entity.attributes['occi.compute.architecture'] = SERVER_CONFIG['compute_arch']
+            entity.attributes['occi.compute.cores'] = flavor.attributes['occi.compute.cores']
+            entity.attributes['occi.compute.memory'] = flavor.attributes['occi.compute.memory']
+            entity.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':info['id']}
+
+        except (UnboundLocalError, KeyError) as e:
+            raise HTTPError(406, 'Missing details about compute instance')
+            
 
     def retrieve(self, entity, extras):
         
         #Triggering cyclades to retrieve up to date information
 
-        conf = Config()
-        conf.set('token',extras['token'])
-        snf = ComputeClient(conf)
+        snf = extras['snf']
 
         vm_id = int(entity.attributes['occi.core.id'])
         vm_info = snf.get_server_details(vm_id)
@@ -87,18 +85,13 @@ class ComputeBackend(MyBackend):
                 entity.actions = [START]
             if entity.attributes['occi.compute.state'] == 'active': 
                 entity.actions = [STOP, SUSPEND, RESTART]
-            if entity.attributes['occi.compute.state'] == 'suspended':
-                entity.actions = [START]
 
 
     def delete(self, entity, extras):
 
         #Deleting compute instance
 
-        conf = Config()
-        conf.set('token',extras['token'])
-        snf = ComputeClient(conf)
-
+        snf = extras['snf']
         vm_id = int(entity.attributes['occi.core.id'])
         snf.delete_server(vm_id)
 
@@ -107,10 +100,8 @@ class ComputeBackend(MyBackend):
 
         #Triggering action to compute instances
 
-        conf = Config()
-        conf.set('token',extras['token'])
-        client = CycladesClient(conf)
-        snf = ComputeClient(conf)
+        client = extras['client']
+        snf = extras['snf']
 
         vm_id = int(entity.attributes['occi.core.id'])
         vm_info = snf.get_server_details(vm_id)
@@ -137,4 +128,4 @@ class ComputeBackend(MyBackend):
                 snf.reboot_server(vm_id)
 
             elif action == SUSPEND:
-                raise AttributeError("This actions is currently no applicable")
+                raise HTTPError(501, "This actions is currently no applicable")
