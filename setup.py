@@ -7,5 +7,8 @@ setup(
     url='http://code.grnet.gr/projects/snf-occi',
     license='BSD',
     packages = ['snfOCCI'],
-    scripts=['snfOCCI/snf-occi-server.py']
+    entry_points = {
+        'console_scripts' : ['snf-occi = snfOCCI.APIserver:main']
+        }
+
     )

@@ -90,16 +90,69 @@ Below you can see the required procedures/operations for OCCI compatibility.
 OCCI client/server library
 ==========================
 
-occi-py is a generic library implementation of the Open Cloud Computing Interface (OCCI). It aims to provide a high-level interface for the integration of OCCI to other new or existing applications. 
+pyssf is a collection of OCCI python modules. It aims to provide a high-level interface for the integration of OCCI to other new or existing applications. 
 
 Features:
 ---------
 
 * It includes a REST API service with the OCCI specifications already implemented
 * It only requires a custom backend and registry to interact with Cyclades
-* Implements a simple web frontend server with support for Tornado WSGI
 
-Package on pypi: `OCCI 0.6 <http://pypi.python.org/pypi/occi/0.6>`_
+Current progress
+=================
+By now we have considered implementing only the **Compute** backend of the OCCI to Cyclades/Openstack API bridge and we are planning to extend it for **networking** and **storage** capabilities.
+
+Installation
+-------------
+
+First, you need to install the required dependencies which can be found here:
+
+* `pyssf <https://code.grnet.gr/attachments/download/1182/pyssf-0.4.5.tar>`_
+* `kamaki <https://code.grnet.gr/attachments/download/1183/kamaki-0.3.tar>`_  
+
+Then you can install **snf-occi** API translation server by cloning our latest source code:
+
+* `snf-occi <https://code.grnet.gr/projects/snf-occi>`_ 
+
+**NOTE** :Before running setup.py you have to edit the **config.py** setting up:
+
+* API Server port
+* VM hostname naming pattern (FQDN providing the id of each compute resource)
+* VM core architecture
+
+Finally you can start the API translation server by running **snf-occi**
+
+Examples:
+---------
+For the examples below we assume server is running on localhost (port 8888) and authentication token is $AUTH. For the HTTP requests we are using **curl**.
+
+* Retrieve all registered Kinds, Actions and Mixins:
+
+  ::
+
+    curl -v -X GET localhost:8888/-/ -H 'Auth-Token: $AUTH'
+
+* Create a new VM described by the flavor 'C2R2048D20' and using the image 'Debian'
+
+  ::
+ 
+    curl -v -X POST localhost:8888/compute/ 
+    -H 'Category: compute; scheme=http://schemas.ogf.org/occi/infrastructure#;  class="kind";' 
+    -H 'X-OCCI-Attribute: occi.core.title = newVM' -H 'Category: C2R2048D20; scheme=http://schemas.ogf.org/occi/infrastructure#; ' 
+    -H 'Category: Debian; scheme=http://schemas.ogf.org/occi/infrastructure#;' -H 'Auth-Token: $AUTH' 
+    -H 'Content-type: text/occi'
+
+* Retrieve all the details of th VM with identifier $ID
+
+  ::
+
+    curl -v -X GET localhost:8888/compute/$ID -H 'Auth-Token: $AUTH'
+
+* Delete the VM with identifier $ID
+
+  ::
+  
+    curl -v -X DELETE localhost:8888/compute/$ID -H 'Auth-Token: $AUTH'
 
 
 Indices and tables

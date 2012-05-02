@@ -61,7 +61,8 @@ class MyAPP(Application):
         return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'], snf = compClient, client = cyclClient)
 
 
-if __name__ == '__main__':
+def main():
+
 
     APP = MyAPP(registry = snfRegistry())
     COMPUTE_BACKEND = ComputeBackend()
@@ -77,4 +78,4 @@ if __name__ == '__main__':
     VALIDATOR_APP = validator(APP)
     HTTPD = make_server('', SERVER_CONFIG['port'], VALIDATOR_APP)
     HTTPD.serve_forever()
-
+    
