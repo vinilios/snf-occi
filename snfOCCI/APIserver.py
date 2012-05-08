@@ -49,7 +49,7 @@ class MyAPP(Application):
     def __call__(self, environ, response):
 
         conf = Config()
-        conf.set('token',environ['HTTP_AUTH_TOKEN'])
+        conf.set('compute_token',environ['HTTP_AUTH_TOKEN'])
         compClient = ComputeClient(conf)
         cyclClient = CycladesClient(conf)
 
