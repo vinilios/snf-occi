@@ -57,13 +57,21 @@ class MyAPP(Application):
         resources = self.registry.resources
         occi_keys = resources.keys()
         
+        #Compute instances in synnefo not available in registry
         diff = [x for x in snf_keys if '/compute/'+x not in occi_keys]
         for key in diff:
 
             details = snf.get_server_details(int(key))
             flavor = snf.get_flavor_details(details['flavorRef'])
+            image = snf.get_image_details(details['imageRef'])
 
-            resource = Resource(key, COMPUTE, [])
+            for i in self.registry.backends:
+                if i.term == str(image['name']):
+                    rel_image = i
+                if i.term == str(flavor['name']):
+                    rel_flavor = i
+
+            resource = Resource(key, COMPUTE, [rel_flavor, rel_image])
             resource.actions = [START]
             resource.attributes['occi.core.id'] = key
             resource.attributes['occi.compute.state'] = 'inactive'
@@ -71,9 +79,9 @@ class MyAPP(Application):
             resource.attributes['occi.compute.cores'] = flavor['cpu']
             resource.attributes['occi.compute.memory'] = flavor['ram']
             resource.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':int(key)}
-  
             self.registry.add_resource(key, resource, None)
 
+        #Compute instances in registry not available in synnefo
         diff = [x for x in occi_keys if x[9:] not in snf_keys]
         for key in diff:
             self.registry.delete_resource(key, None)
@@ -87,9 +95,10 @@ class MyAPP(Application):
         cyclClient = CycladesClient(conf)
 
         #Up-to-date flavors and images
-        self.refresh_compute_instances(compClient)
         self.refresh_images(compClient, cyclClient)
         self.refresh_flavors(compClient, cyclClient)
+        self.refresh_compute_instances(compClient)
+
 
         # token will be represented in self.extras
         return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'], snf = compClient, client = cyclClient)
