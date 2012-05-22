@@ -6,7 +6,7 @@
 snf-occi's documentation!
 ====================================
 
-**snf-occi** implements OCCI specifications to synnefo's API in order to achieve greater interoperability in common tasks refering cyclades management. This module is a translation bridge between OCCI and Openstack API and is designed to be as independent as possible from the rest IaaS, providing an OCCI compatibility layer to other services using Openstack API. 
+**snf-occi** snf-occi implements the OCCI specification on top of synnefo’s API in order to achieve greater interoperability in common tasks referring cyclades management. This module is a translation bridge between OCCI and the Openstack API and is designed to be as independent as possible from the rest IaaS, providing an OCCI compatibility layer to other services using Openstack API. 
 
 **snf-occi** is based in modules provided by kamaki cli-tool when dealing with REST API calls to Openstack.
 
@@ -15,7 +15,7 @@ snf-occi's documentation!
 
 About OCCI
 ----------
-Current OCCI specification consists of the following three documents:
+The current OCCI specification consists of the following three documents:
 
 * `OCCI Core <http://ogf.org/documents/GFD.183.pdf>`_
 * `OCCI Infrastructure <http://ogf.org/documents/GFD.184.pdf>`_
@@ -23,7 +23,7 @@ Current OCCI specification consists of the following three documents:
 
 OCCI and Cyclades
 -----------------
-OCCI implementation in Cyclades is going to be based in the **OCCI Infrastructure** specifications, in which common Cloud IaaS components are described. Below you can see the matching components between OCCI and Cyclades:
+The OCCI implementation in Cyclades is going to be based in the OCCI Infrastructure specification, in which common Cloud IaaS components are described. The correspondence between OCCI and Cyclades is as follows:
 
 +-------------------------+-------------------------+
 |OCCI                     |Cyclades                 |
@@ -47,8 +47,6 @@ OCCI implementation in Cyclades is going to be based in the **OCCI Infrastructur
 OCCI requirements
 ------------------
 Due to OCCI's structure there cannot be straightforward mapping to Cyclades/OpenStack API. The missing elements are networking and storage capabilities using current Cyclades API.
-
-**Note:** Quantum API support is being planned.
 
 OCCI operations
 ****************
@@ -114,7 +112,7 @@ Then you can install **snf-occi** API translation server by cloning our latest s
 
 * `snf-occi <https://code.grnet.gr/projects/snf-occi>`_ 
 
-**NOTE** :Before running setup.py you have to edit the **config.py** setting up:
+**NOTE**: Before running setup.py you have to edit the **config.py** setting up:
 
 * API Server port
 * VM hostname naming pattern (FQDN providing the id of each compute resource)
