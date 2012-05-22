@@ -47,7 +47,8 @@ class MyAPP(Application):
 
 
     def refresh_compute_instances(self, snf):
-        
+        '''Syncing registry with cyclades resources'''
+
         servers = snf.list_servers()
         snf_keys = []
         for server in servers:
@@ -57,16 +58,13 @@ class MyAPP(Application):
         occi_keys = resources.keys()
         
         diff = [x for x in snf_keys if '/compute/'+x not in occi_keys]
-
         for key in diff:
 
             details = snf.get_server_details(int(key))
             flavor = snf.get_flavor_details(details['flavorRef'])
 
             resource = Resource(key, COMPUTE, [])
-
             resource.actions = [START]
-            resource.attribute = {}
             resource.attributes['occi.core.id'] = key
             resource.attributes['occi.compute.state'] = 'inactive'
             resource.attributes['occi.compute.architecture'] = SERVER_CONFIG['compute_arch']
@@ -75,6 +73,11 @@ class MyAPP(Application):
             resource.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':int(key)}
   
             self.registry.add_resource(key, resource, None)
+
+        diff = [x for x in occi_keys if x[9:] not in snf_keys]
+        for key in diff:
+            self.registry.delete_resource(key, None)
+
 
     def __call__(self, environ, response):
 
