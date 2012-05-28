@@ -4,6 +4,9 @@ SERVER_CONFIG = {
     'compute_arch': 'x86'
     }
 
+KAMAKI_CONFIG = {
+    'compute_url': 'https://cyclades.okeanos.grnet.gr/api/v1.1'
+}
         
 
     

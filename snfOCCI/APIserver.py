@@ -2,7 +2,7 @@
 
 from snfOCCI.registry import snfRegistry
 from snfOCCI.compute import ComputeBackend
-from snfOCCI.config import SERVER_CONFIG
+from snfOCCI.config import SERVER_CONFIG, KAMAKI_CONFIG
 
 from kamaki.clients.compute import ComputeClient
 from kamaki.clients.cyclades import CycladesClient
@@ -79,6 +79,7 @@ class MyAPP(Application):
             resource.attributes['occi.compute.cores'] = flavor['cpu']
             resource.attributes['occi.compute.memory'] = flavor['ram']
             resource.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':int(key)}
+
             self.registry.add_resource(key, resource, None)
 
         #Compute instances in registry not available in synnefo
@@ -89,16 +90,13 @@ class MyAPP(Application):
 
     def __call__(self, environ, response):
 
-        conf = Config()
-        conf.set('compute_token',environ['HTTP_AUTH_TOKEN'])
-        compClient = ComputeClient(conf)
-        cyclClient = CycladesClient(conf)
+        compClient = ComputeClient(KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
+        cyclClient = CycladesClient(KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
 
         #Up-to-date flavors and images
-        self.refresh_images(compClient, cyclClient)
-        self.refresh_flavors(compClient, cyclClient)
+        self.refresh_images(compClient,cyclClient)
+        self.refresh_flavors(compClient,cyclClient)
         self.refresh_compute_instances(compClient)
-
 
         # token will be represented in self.extras
         return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'], snf = compClient, client = cyclClient)
