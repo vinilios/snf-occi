@@ -106,7 +106,7 @@ Installation
 First, you need to install the required dependencies which can be found here:
 
 * `pyssf <https://code.grnet.gr/attachments/download/1182/pyssf-0.4.5.tar>`_
-* `kamaki <https://code.grnet.gr/attachments/download/1183/kamaki-0.3.tar>`_  
+* `kamaki <https://code.grnet.gr/projects/kamaki>`_  
 
 Then you can install **snf-occi** API translation server by cloning our latest source code:
 
