@@ -21,6 +21,8 @@ The current OCCI specification consists of the following three documents:
 * `OCCI Infrastructure <http://ogf.org/documents/GFD.184.pdf>`_
 * `OCCI HTTP rendering <http://ogf.org/documents/GFD.185.pdf>`_
 
+The master document for the OCCI specification is at `OCCI Specification <http://occi-wg.org/about/specification/>`_
+
 OCCI and Cyclades
 -----------------
 The OCCI implementation in Cyclades is going to be based in the OCCI Infrastructure specification, in which common Cloud IaaS components are described. The correspondence between OCCI and Cyclades is as follows:
