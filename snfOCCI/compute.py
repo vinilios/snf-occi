@@ -40,15 +40,24 @@ class ComputeBackend(MyBackend):
 
             vm_name = entity.attributes['occi.core.title']
             info = snf.create_server(vm_name, flavor_id, image_id)
-
+           
             entity.actions = [START]
             entity.attributes['occi.compute.state'] = 'inactive'
             entity.attributes['occi.core.id'] = str(info['id'])
             entity.attributes['occi.compute.architecture'] = SERVER_CONFIG['compute_arch']
             entity.attributes['occi.compute.cores'] = flavor.attributes['occi.compute.cores']
             entity.attributes['occi.compute.memory'] = flavor.attributes['occi.compute.memory']
-            entity.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':info['id']}
-
+           
+            # entity.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':info['id']}
+            info['adminPass']= ""
+            print info
+            networkIDs = info['addresses'].keys()
+                #resource.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':int(key)}
+            if len(networkIDs)>0:    
+                entity.attributes['occi.compute.hostname'] =  str(info['addresses'][networkIDs[0]][0]['addr'])
+            else:
+                entity.attributes['occi.compute.hostname'] = ""
+               
         except (UnboundLocalError, KeyError) as e:
             raise HTTPError(406, 'Missing details about compute instance')
             
