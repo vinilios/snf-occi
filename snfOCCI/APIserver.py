@@ -1,43 +1,92 @@
 #!/usr/bin/env python
 
+import sys
+from optparse import OptionParser, OptionValueError
+import string
+import sqlite3
+import eventlet
+from eventlet import wsgi
+import os
+import json
+import uuid
+
 from snfOCCI.registry import snfRegistry
 from snfOCCI.compute import ComputeBackend
+from snfOCCI.config import SERVER_CONFIG, KAMAKI_CONFIG, VOMS_CONFIG
+import snf_voms
 from snfOCCI.network import NetworkBackend, IpNetworkBackend, IpNetworkInterfaceBackend, NetworkInterfaceBackend
 
-from snfOCCI.config import SERVER_CONFIG, KAMAKI_CONFIG
 
 from kamaki.clients.compute import ComputeClient
 from kamaki.clients.cyclades import CycladesClient
+from kamaki.clients import astakos
 from kamaki.clients import ClientError
+from kamaki.cli import config as kamaki_config
 
 from occi.core_model import Mixin, Resource
-from occi.backend import MixinBackend, KindBackend
+from occi.backend import MixinBackend
 from occi.extensions.infrastructure import COMPUTE, START, STOP, SUSPEND, RESTART, RESOURCE_TEMPLATE, OS_TEMPLATE, NETWORK, IPNETWORK, NETWORKINTERFACE,IPNETWORKINTERFACE 
-from occi.wsgi import Application
+from occi import wsgi
 from occi.exceptions import HTTPError
 from occi import core_model
 
 from wsgiref.simple_server import make_server
 from wsgiref.validate import validator
-import uuid
+from webob import Request
+from pprint import pprint
 
-class MyAPP(Application):
+
+class MyAPP(wsgi.Application):
     '''
     An OCCI WSGI application.
     '''
 
+    def __init__(self):
+        """
+        Initialization of the WSGI OCCI application for synnefo
+        """
+        global ENABLE_VOMS, VOMS_DB
+        ENABLE_VOMS = VOMS_CONFIG['enable_voms']
+        super(MyAPP,self).__init__(registry=snfRegistry())
+        self._register_backends()
+        VALIDATOR_APP = validator(self)
+         
+        
+    def _register_backends(self):
+        COMPUTE_BACKEND = ComputeBackend()
+        NETWORK_BACKEND = NetworkBackend() 
+        NETWORKINTERFACE_BACKEND = NetworkInterfaceBackend()
+        IPNETWORK_BACKEND = IpNetworkBackend()
+        IPNETWORKINTERFACE_BACKEND = IpNetworkInterfaceBackend()
+    
+        self.register_backend(COMPUTE, COMPUTE_BACKEND)
+        self.register_backend(START, COMPUTE_BACKEND)
+        self.register_backend(STOP, COMPUTE_BACKEND)
+        self.register_backend(RESTART, COMPUTE_BACKEND)
+        self.register_backend(SUSPEND, COMPUTE_BACKEND)
+        self.register_backend(RESOURCE_TEMPLATE, MixinBackend())
+        self.register_backend(OS_TEMPLATE, MixinBackend())
+       
+        # Network related backends
+        self.register_backend(NETWORK, NETWORK_BACKEND)
+        self.register_backend(IPNETWORK, IPNETWORK_BACKEND)
+        self.register_backend(NETWORKINTERFACE,NETWORKINTERFACE_BACKEND)
+        self.register_backend(IPNETWORKINTERFACE, IPNETWORKINTERFACE_BACKEND)
+     
+        
     def refresh_images(self, snf, client):
-
-        images = snf.list_images()
-        for image in images:
-            IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
-            IMAGE = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(image['name']), [OS_TEMPLATE], attributes = IMAGE_ATTRIBUTES)
-            self.register_backend(IMAGE, MixinBackend())
-
+        try:
+            images = snf.list_images()
+            for image in images:
+                    IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
+                    IMAGE = Mixin("http://schemas.ogf.org/occi/os_tpl#", occify_terms(str(image['name'])), [OS_TEMPLATE],title='IMAGE' ,attributes = IMAGE_ATTRIBUTES)
+                    self.register_backend(IMAGE, MixinBackend())
+        except:
+            raise HTTPError(404, "Unauthorized access")
+      
     def refresh_flavors(self, snf, client):
         
         flavors = snf.list_flavors()
-        print "Retrieving details for each image id"
         for flavor in flavors:
             details = snf.get_flavor_details(flavor['id'])
             FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
@@ -45,24 +94,23 @@ class MyAPP(Application):
                                  'occi.compute.memory': str(details['ram']),
                                  'occi.storage.size': str(details['disk']),
                                  }
-            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
+            FLAVOR = Mixin("http://schemas.ogf.org/occi/resource_tpl#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
             self.register_backend(FLAVOR, MixinBackend())
+            
             
     def refresh_flavors_norecursive(self, snf, client):
         flavors = snf.list_flavors(True)
         print "Retrieving details for each image id"
         for flavor in flavors:
-            # details = snf.get_flavor_details(flavor['id'])
             FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
                                  'occi.compute.cores': str(flavor['vcpus']),
                                  'occi.compute.memory': str(flavor['ram']),
                                  'occi.storage.size': str(flavor['disk']),
                                  }
              
-            FLAVOR = Mixin("http://schemas.ogf.org/occi/infrastructure#", str(flavor['name']), [RESOURCE_TEMPLATE], attributes = FLAVOR_ATTRIBUTES)
+            FLAVOR = Mixin("http://schemas.ogf.org/occi/resource_tpl#", occify_terms(str(flavor['name'])), [RESOURCE_TEMPLATE], title='FLAVOR',attributes = FLAVOR_ATTRIBUTES)
             self.register_backend(FLAVOR, MixinBackend())
             
-       
     def refresh_network_instances(self,client):
         networks =client.networks_get(command = 'detail')
         network_details = networks.json['networks']
@@ -90,7 +138,7 @@ class MyAPP(Application):
                 self.registry.add_resource(netID, snf_net, None)       
             
         
-            
+    
     def refresh_compute_instances(self, snf, client):
         '''Syncing registry with cyclades resources'''
         
@@ -102,8 +150,7 @@ class MyAPP(Application):
         resources = self.registry.resources
         occi_keys = resources.keys()
         
-        print resources.keys()
-        
+        print occi_keys
         for serverID in occi_keys:
             if '/compute/' in serverID and resources[serverID].attributes['occi.compute.hostname'] == "":
                 self.registry.delete_resource(serverID, None)
@@ -113,20 +160,22 @@ class MyAPP(Application):
             
         #Compute instances in synnefo not available in registry
         diff = [x for x in snf_keys if '/compute/'+x not in occi_keys]
+        
         for key in diff:
 
             details = snf.get_server_details(int(key))
             flavor = snf.get_flavor_details(details['flavor']['id'])
             
             try:
-                print "line 65:Finished getting image details for VM with ID" + str(details['flavor']['id'])
+                print "line 65:Finished getting image details for VM "+key+" with ID" + str(details['flavor']['id'])
                 image = snf.get_image_details(details['image']['id'])
                 
                 for i in self.registry.backends:
-                    if i.term == str(image['name']):
+                    if i.term ==  occify_terms(str(image['name'])):
                         rel_image = i
-                    if i.term == str(flavor['name']):
+                    if i.term ==  occify_terms(str(flavor['name'])):
                         rel_flavor = i
+
                         
                 resource = Resource(key, COMPUTE, [rel_flavor, rel_image])
                 resource.actions = [START]
@@ -138,9 +187,7 @@ class MyAPP(Application):
                 resource.attributes['occi.core.title'] = str(details['name'])
                 networkIDs = details['addresses'].keys()
                 if len(networkIDs)>0: 
-                    #resource.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':int(key)}
                     resource.attributes['occi.compute.hostname'] =  str(details['addresses'][networkIDs[0]][0]['addr'])
-                    #resource.attributes['occi.networkinterface.address'] = str(details['addresses'][networkIDs[0]][0]['addr'])
                 else:
                     resource.attributes['occi.compute.hostname'] = ""
                     
@@ -166,7 +213,7 @@ class MyAPP(Application):
                                           'occi.networkinterface.allocation' : allocheme,
                                           'occi.networking.interface': str(item['id']),
                                           'occi.networkinterface.mac' : str(item['mac_address']),
-                                          'occi.networkinterface.ip4' : ip4address,
+                                          'occi.networkinterface.address' : ip4address,
                                           'occi.networkinterface.ip6' :  ip6address                      
                                       }
                     elif  len(details['addresses'][netKey])>0:
@@ -174,7 +221,7 @@ class MyAPP(Application):
                                           'occi.networkinterface.allocation' : allocheme,
                                           'occi.networking.interface': '',
                                           'occi.networkinterface.mac' : '',
-                                          'occi.networkinterface.ip4' : ip4address,
+                                          'occi.networkinterface.address' : ip4address,
                                           'occi.networkinterface.ip6' :  ip6address                      
                                       }
     
@@ -183,7 +230,7 @@ class MyAPP(Application):
                                           'occi.networkinterface.allocation' : '',
                                           'occi.networking.interface': '',
                                           'occi.networkinterface.mac' : '',
-                                          'occi.networkinterface.ip4' :'',
+                                          'occi.networkinterface.address' :'',
                                           'occi.networkinterface.ip6' : '' }
                                       
                     resource.links.append(NET_LINK)
@@ -192,7 +239,7 @@ class MyAPP(Application):
                 
             except ClientError as ce:
                 if ce.status == 404:
-                    print('Image not found, sorry!!!')
+                    print('Image not found (probably older version')
                     continue
                 else:
                     raise ce
@@ -203,50 +250,145 @@ class MyAPP(Application):
             if '/network/' not in key:
                 self.registry.delete_resource(key, None)
 
-    
+
     def __call__(self, environ, response):
         
+        # Enable VOMS Authorization
+        print "snf-occi application has been called!"
+        
+        req = Request(environ) 
+        auth_endpoint = 'snf-auth uri=\'https://'+SERVER_CONFIG['hostname']+':5000/main\''
+        
+        if not req.environ.has_key('HTTP_X_AUTH_TOKEN'):
+              
+                print "Error: An authentication token has not been provided!"
+                status = '401 Not Authorized'
+                headers = [('Content-Type', 'text/html'),('Www-Authenticate',auth_endpoint)]        
+                response(status,headers)               
+                return [str(response)]
+   
+   
+        if ENABLE_VOMS:
+                
+            if req.environ.has_key('HTTP_X_AUTH_TOKEN'):
+               
+                environ['HTTP_AUTH_TOKEN']= req.environ['HTTP_X_AUTH_TOKEN']
+                compClient = ComputeClient(KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
+                cyclClient = CycladesClient(KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
+
+                try:
+                    #Up-to-date flavors and images
+                    self.refresh_images(compClient,cyclClient)           
+                    self.refresh_flavors_norecursive(compClient,cyclClient)
+                    self.refresh_network_instances(cyclClient)
+                    self.refresh_compute_instances(compClient,cyclClient)
+                    # token will be represented in self.extras
+                    return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'], snf = compClient, client = cyclClient)
+                except HTTPError:
+                    print "Exception from unauthorized access!"
+                    status = '401 Not Authorized'
+                    headers = [('Content-Type', 'text/html'),('Www-Authenticate',auth_endpoint)]
+                    response(status,headers)
+                    return [str(response)]
+
+            else:
+                
+                #raise HTTPError(404, "Unauthorized access")
+                status = '401 Not Authorized'
+                headers = [('Content-Type', 'text/html'),('Www-Authenticate',auth_endpoint)]
+                response(status,headers)
+                return [str(response)]
+
+        else:  
             compClient = ComputeClient(KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
             cyclClient = CycladesClient(KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
 
             #Up-to-date flavors and images
-            print "@refresh_images"
+           
             self.refresh_images(compClient,cyclClient)
-            print "@refresh_flavors"
+            
             self.refresh_flavors_norecursive(compClient,cyclClient)
             self.refresh_network_instances(cyclClient)
-            print "@refresh_compute_instances"
             self.refresh_compute_instances(compClient,cyclClient)
-           
+            
             # token will be represented in self.extras
             return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'], snf = compClient, client = cyclClient)
 
-
-def main():
-
-    APP = MyAPP(registry = snfRegistry())
-    COMPUTE_BACKEND = ComputeBackend()
-    NETWORK_BACKEND = NetworkBackend() 
-    NETWORKINTERFACE_BACKEND = NetworkInterfaceBackend()
-    IPNETWORK_BACKEND = IpNetworkBackend()
-    IPNETWORKINTERFACE_BACKEND = IpNetworkInterfaceBackend()
-      
-    APP.register_backend(COMPUTE, COMPUTE_BACKEND)
-    APP.register_backend(START, COMPUTE_BACKEND)
-    APP.register_backend(STOP, COMPUTE_BACKEND)
-    APP.register_backend(RESTART, COMPUTE_BACKEND)
-    APP.register_backend(SUSPEND, COMPUTE_BACKEND)
-    APP.register_backend(RESOURCE_TEMPLATE, MixinBackend())
-    APP.register_backend(OS_TEMPLATE, MixinBackend())
- 
-    # Network related backends
-    APP.register_backend(NETWORK, NETWORK_BACKEND)
-    APP.register_backend(IPNETWORK, IPNETWORK_BACKEND)
-    APP.register_backend(NETWORKINTERFACE,NETWORKINTERFACE_BACKEND)
-    APP.register_backend(IPNETWORKINTERFACE, IPNETWORKINTERFACE_BACKEND)
-     
-    VALIDATOR_APP = validator(APP)
-  
-    HTTPD = make_server('', SERVER_CONFIG['port'], VALIDATOR_APP)
-    HTTPD.serve_forever()
+def application(env, start_response):
     
+    print "snf-occi will execute voms authentication"
+    t =snf_voms.VomsAuthN()       
+    (user_dn, user_vo, user_fqans) = t.process_request(env)
+    print (user_dn, user_vo, user_fqans)
+      
+    env['HTTP_AUTH_TOKEN'] = get_user_token(user_dn)
+   
+    # Get user authentication details
+    astakosClient = astakos.AstakosClient(KAMAKI_CONFIG['astakos_url'], env['HTTP_AUTH_TOKEN'])
+    user_details = astakosClient.authenticate()
+    
+    response = {'access': {'token':{'issued_at':'','expires': user_details['access']['token']['expires'] , 'id':env['HTTP_AUTH_TOKEN']},
+                           'serviceCatalog': [],
+                           'user':{'username': user_dn,'roles_links':user_details['access']['user']['roles_links'],'id': user_details['access']['user']['id'], 'roles':[], 'name':user_dn },
+                           'metadata': {'is_admin': 0, 'roles': user_details['access']['user']['roles']}}}        
+           
+   
+    status = '200 OK'
+    headers = [('Content-Type', 'application/json')]        
+    start_response(status,headers)
+
+    body = json.dumps(response)
+    print body
+    return [body]
+
+
+def app_factory(global_config, **local_config):
+    """This function wraps our simple WSGI app so it
+    can be used with paste.deploy"""
+    return application
+
+def tenant_application(env, start_response):
+    
+    print "snf-occi will return tenant information"
+    if env.has_key('SSL_CLIENT_S_DN_ENV'):
+        print env['SSL_CLIENT_S_DN_ENV'], env['SSL_CLIENT_CERT_ENV']    
+ 
+    req = Request(env) 
+    if req.environ.has_key('HTTP_X_AUTH_TOKEN'):
+            env['HTTP_AUTH_TOKEN']= req.environ['HTTP_X_AUTH_TOKEN']
+    else:
+            raise HTTPError(404, "Unauthorized access") 
+    # Get user authentication details
+    print "@ refresh_user authentication details"
+    astakosClient = astakos.AstakosClient(KAMAKI_CONFIG['astakos_url'], env['HTTP_AUTH_TOKEN'])
+    user_details = astakosClient.authenticate()
+   
+    response = {'tenants_links': [], 'tenants':[{'description':'Instances of EGI Federated Clouds TF','enabled': True, 'id':user_details['access']['user']['id'],'name':'EGI_FCTF'}]}           
+ 
+    status = '200 OK'
+    headers = [('Content-Type', 'application/json')]        
+    start_response(status,headers)
+
+    body = json.dumps(response)
+    print body
+    return [body]
+
+
+def tenant_app_factory(global_config, **local_config):
+    """This function wraps our simple WSGI app so it
+    can be used with paste.deploy"""
+    return tenant_application
+
+
+    
+def occify_terms(term_name):
+    '''
+    Occifies a term_name so that it is compliant with GFD 185.
+    '''
+    term = term_name.strip().replace(' ', '_').replace('.', '-').lower()
+    term=term.replace('(','_').replace(')','_').replace('@','_').replace('+','-_')
+    return term
+
+def get_user_token(user_dn):
+        config = kamaki_config.Config()
+        return config.get_cloud("default", "token")
