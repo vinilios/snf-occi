@@ -14,7 +14,7 @@
 
 import ctypes
 
-#import M2Crypto
+import M2Crypto
 
 
 class _voms(ctypes.Structure):
