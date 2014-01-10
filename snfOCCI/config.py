@@ -39,7 +39,8 @@ SERVER_CONFIG = {
 
 KAMAKI_CONFIG = {
     'compute_url': 'https://cyclades.okeanos.grnet.gr/compute/v2.0/',
-    'astakos_url': 'https://accounts.okeanos.grnet.gr/identity/v2.0/'
+    'astakos_url': 'https://accounts.okeanos.grnet.gr/identity/v2.0/',
+    'network_url': 'https://cyclades.okeanos.grnet.gr/network/v2.0'
 }
         
 VOMS_CONFIG = {

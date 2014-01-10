@@ -146,8 +146,7 @@ class MyAPP(wsgi.Application):
             self.register_backend(FLAVOR, MixinBackend())
             
     def refresh_network_instances(self,client):
-        networks =client.networks_get(command = 'detail')
-        network_details = networks.json['networks']
+        network_details = client.list_networks(detail='True')
         resources = self.registry.resources
         occi_keys = resources.keys()
          
@@ -162,7 +161,7 @@ class MyAPP(wsgi.Application):
                
                 #This info comes from the network details
                 snf_net.attributes['occi.network.state'] = str(network['status'])
-                snf_net.attributes['occi.network.gateway'] = str(network['gateway'])
+                snf_net.attributes['occi.network.gateway'] = ''
                
                 if network['public'] == True:
                     snf_net.attributes['occi.network.type'] = "Public = True"
@@ -235,11 +234,16 @@ class MyAPP(wsgi.Application):
                                                self.registry.resources['/network/'+str(netKey)])
                     
                     for version in details['addresses'][netKey]:
+                       
+                        ip4address = ''
+                        ip6address = ''
+
                         if version['version']==4:
                             ip4address = str(version['addr'])
                             allocheme = str(version['OS-EXT-IPS:type'])
                         elif version['version']==6:
                             ip6address = str(version['addr'])
+                            allocheme = str(version['OS-EXT-IPS:type'])
                    
                     if 'attachments' in details.keys():
                         for item in details['attachments']:
@@ -309,12 +313,13 @@ class MyAPP(wsgi.Application):
                 environ['HTTP_AUTH_TOKEN']= req.environ['HTTP_X_AUTH_TOKEN']
                 compClient = ComputeClient(KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
                 cyclClient = CycladesClient(KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
+                netClient = CycladesNetworkClient(KAMAKI_CONFIG['network_url'], environ['HTTP_AUTH_TOKEN'])
 
                 try:
                     #Up-to-date flavors and images
                     self.refresh_images(compClient,cyclClient)           
                     self.refresh_flavors_norecursive(compClient,cyclClient)
-                    self.refresh_network_instances(cyclClient)
+                    self.refresh_network_instances(netClient)
                     self.refresh_compute_instances(compClient,cyclClient)
                     # token will be represented in self.extras
                     return self._call_occi(environ, response, security = None, token = environ['HTTP_AUTH_TOKEN'], snf = compClient, client = cyclClient)
@@ -358,7 +363,9 @@ def application(env, start_response):
     env['HTTP_AUTH_TOKEN'] = get_user_token(user_dn)
    
     # Get user authentication details
-    astakosClient = astakos.AstakosClient(KAMAKI_CONFIG['astakos_url'], env['HTTP_AUTH_TOKEN'])
+    pool = False
+    astakosClient = astakos.AstakosClient(env['HTTP_AUTH_TOKEN'], KAMAKI_CONFIG['astakos_url'] , use_pool = pool)
+
     user_details = astakosClient.authenticate()
     
     response = {'access': {'token':{'issued_at':'','expires': user_details['access']['token']['expires'] , 'id':env['HTTP_AUTH_TOKEN']},
