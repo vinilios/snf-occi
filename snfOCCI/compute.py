@@ -35,7 +35,7 @@
 from snfOCCI.config import SERVER_CONFIG
 
 from occi.backend import ActionBackend, KindBackend
-from occi.extensions.infrastructure import START, STOP, SUSPEND, RESTART
+from occi.extensions import infrastructure
 from occi.exceptions import HTTPError
 
 
@@ -75,13 +75,16 @@ class ComputeBackend(MyBackend):
             vm_name = entity.attributes['occi.core.title']
             info = snf.create_server(vm_name, flavor_id, image_id)
            
-            entity.actions = [START]
             entity.attributes['occi.compute.state'] = 'inactive'
             entity.attributes['occi.core.id'] = str(info['id'])
             entity.attributes['occi.compute.architecture'] = SERVER_CONFIG['compute_arch']
             entity.attributes['occi.compute.cores'] = flavor.attributes['occi.compute.cores']
             entity.attributes['occi.compute.memory'] = flavor.attributes['occi.compute.memory']
            
+            entity.actions = [infrastructure.STOP,
+                               infrastructure.SUSPEND,
+                               infrastructure.RESTART]
+
             # entity.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':info['id']}
             info['adminPass']= ""
             print info
@@ -108,9 +111,11 @@ class ComputeBackend(MyBackend):
         
         status_dict = {'ACTIVE' : 'active',
                        'STOPPED' : 'inactive',
+                       'REBOOT' : 'inactive',
                        'ERROR' : 'inactive',
                        'BUILD' : 'inactive',
                        'DELETED' : 'inactive',
+                       'UNKNOWN' : 'inactive'
                        }
         
         entity.attributes['occi.compute.state'] = status_dict[vm_state]
@@ -120,21 +125,47 @@ class ComputeBackend(MyBackend):
 
         else:
             if entity.attributes['occi.compute.state'] == 'inactive':
-                entity.actions = [START]
+                entity.actions = [infrastructure.START]
             if entity.attributes['occi.compute.state'] == 'active': 
-                entity.actions = [STOP, SUSPEND, RESTART]
+                entity.actions = [infrastructure.STOP, infrastructure.SUSPEND, infrastructure.RESTART]
 
 
     def delete(self, entity, extras):
 
         #Deleting compute instance
-
+        print "Deleting VM" + str(vm_id)
         snf = extras['snf']
         vm_id = int(entity.attributes['occi.core.id'])
         snf.delete_server(vm_id)
 
 
-    def action(self, entity, action, extras):
+    def get_vm_actions(self, entity ,vm_state):
+        
+        actions = []
+        
+        status_dict = {'ACTIVE' : 'active',
+                       'STOPPED' : 'inactive',
+                       'REBOOT' : 'inactive',
+                       'ERROR' : 'inactive',
+                       'BUILD' : 'inactive',
+                       'DELETED' : 'inactive',
+                       'UNKNOWN' : 'inactive'
+                       }
+
+        if vm_state in status_dict:
+            
+            entity.attributes['occi.compute.state'] = status_dict[vm_state]
+            if vm_state == 'ACTIVE':
+                actions.append(infrastructure.STOP)
+                actions.append(infrastructure.RESTART)
+            elif vm_state in ('STOPPED'):
+                actions.append(infrastructure.START)
+                
+            return actions
+        else:
+            raise HTTPError(500, 'Undefined status of the VM')
+
+    def action(self, entity, action, attributes, extras):
 
         #Triggering action to compute instances
 
@@ -144,26 +175,32 @@ class ComputeBackend(MyBackend):
         vm_id = int(entity.attributes['occi.core.id'])
         vm_info = snf.get_server_details(vm_id)
         vm_state = vm_info['status']
-
+        
+        # Define the allowed actions depending on the state of the VM
+        entity.actions = self.get_vm_actions(entity,vm_state)
+        
 
         if vm_state == 'ERROR':
             raise HTTPError(500, 'ERROR building the compute instance')
 
         else:
             if action not in entity.actions:
-                raise AttributeError("This action is currently no applicable.")
+                raise AttributeError("This action is currently no applicable in the current status of the VM (CURRENT_STATE = " + str(vm_state)+ ").")
             
-            elif action == START:
-                print "Starting VM"
+            elif action == infrastructure.START:
+                print "Starting VM" + str(vm_id)
                 client.start_server(vm_id)
                 
-            elif action == STOP:
-                print "Stopping VM"
+            elif action == infrastructure.STOP:
+                print "Stopping VM"  + str(vm_id)
                 client.shutdown_server(vm_id)
     
-            elif action == RESTART:
-                print "Restarting VM"
+            elif action == infrastructure.RESTART:
+                print "Restarting VM" + str(vm_id)
                 snf.reboot_server(vm_id)
 
-            elif action == SUSPEND:
+            elif action == infrastructure.SUSPEND:
                 raise HTTPError(501, "This actions is currently no applicable")
+            
+            
+

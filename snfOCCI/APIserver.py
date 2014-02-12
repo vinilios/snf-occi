@@ -56,6 +56,7 @@ from kamaki.clients.cyclades import CycladesClient
 from kamaki.clients import astakos
 from kamaki.clients import ClientError
 from kamaki.cli import config as kamaki_config
+from kamaki.clients.cyclades import CycladesNetworkClient
 
 from occi.core_model import Mixin, Resource
 from occi.backend import MixinBackend
