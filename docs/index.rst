@@ -170,7 +170,7 @@ Moreover, a valid certificate issued by a valid CA is required for the server ho
 ::
 
 $ ls /etc/ssl/certs/server.crt
-$ ls /e	tc/ssl/private/server.key
+$ ls /etc/ssl/private/server.key
 
 
 Apache Installation and Configuration
@@ -263,8 +263,8 @@ Assuming that the snf-occi server has the FQDM nodeX.example.com, then the follo
 	$ ln /usr/lib/cgi-bin/snf_voms/snf_voms.py /usr/lib/cgi-bin/snf_voms/main
 	$ cp snf-occi/snfOCCI/httpd/snf_voms_auth.py /usr/lib/cgi-bin/snf_voms/snf_voms_auth.py
 	$ ln /usr/lib/cgi-bin/snf_voms/snf_voms_auth.py /usr/lib/cgi-bin/snf_voms/main_auth
-	$ cp snf-occi/snfOCCI/snf_voms_auth-paste.ini /home/synneo/snf_voms_auth-paste.ini
-	$ cp snf-occi/snfOCCI/snf_voms-paste.ini /home/synnefo/snf_voms-paste.ini 
+	$ cp snf-occi/snfOCCI/httpd/snf_voms_auth-paste.ini /home/synneo/snf_voms_auth-paste.ini
+	$ cp snf-occi/snfOCCI/httpd/snf_voms-paste.ini /home/synnefo/snf_voms-paste.ini 
 
 
 
@@ -353,6 +353,14 @@ The user must have a valid authentication token in order to interact with the sn
 
 	$ curl --capath /etc/grid-security/certificates -X GET https://<snf-occi_host>:8888/compute/$ID -H 'X-Auth-Token: $AUTH'
 
+
+* Perform a STOP action upon a VM::
+
+	$ curl -X POST https://<snf-occi_host>:8888/compute/$ID?action=stop -H 'Content-type: text/occi' -H 'X-Auth-Token: $AUTH'  -H 'Category: stop; scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"; class="action"'
+
+* Perform a START action upon a VM::
+
+	$ curl -X POST https://<snf-occi_host>:8888/compute/$ID?action=start -H 'Content-type: text/occi' -H 'X-Auth-Token:$AUTH' -H 'Category: start; scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"; class="action"'
 
 
 * Delete the VM with identifier $ID::
