@@ -35,7 +35,7 @@ The OCCI implementation for Synnefo is in accordance with the OCCI Infrastructur
 +-------------------------+-------------------------+
 |OS Template              |Synnefo images           |
 +-------------------------+-------------------------+
-|Resource Template        |Synnefo flavors          |
+|Resource Template        |Synnefo flavors          
 +-------------------------+-------------------------+
 |Network                  |Synnefo networks         |
 +-------------------------+-------------------------+
@@ -122,7 +122,7 @@ Installation
 
 Upon the completion of the previous steps, you can install **snf-occi** API translation server by cloning our latest source code:
 
-* `snf-occi Repository <https://code.grnet.gr/git/snf-occi>`_ 
+* `snf-occi Repository <https://github.com/grnet/snf-occi>`_ 
 
 **NOTE**: Before running setup.py, you have to edit the config.py in order to setup the following information:
 
@@ -370,9 +370,9 @@ The user must have a valid authentication token in order to interact with the sn
 
 Moreover, the `rOCCI cli <https://github.com/gwdg/rOCCI-cli>`_ can be used directly from shell defining the following parameters:
 
-	* -- endpoint https://<snf-occi_host>:8888 
+	* --endpoint https://<snf-occi_host>:8888 
 	* --auth x509
-	* -- voms
+	* --voms
 	* --user-cred $X509_USER_PROXY
 
 
@@ -381,11 +381,7 @@ Future Directions
 
 The snf-occi server is constantly evolving and being enhanced with more new features in order to support more advanced functionalities. For instance, some upcoming features are:
 
-* VM Contextualization 
 * Network Management
-* Data Management
-* VM Image Management
-
  
 Indices and tables
 ==================
