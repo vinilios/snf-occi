@@ -245,6 +245,9 @@ Assuming that the snf-occi server has the FQDN nodeX.example.com, then the follo
 * In **/etc/apache2/httpd.conf** add::
 	ServerName nodeX.example.com
 
+	Note: In Ubuntu 14.04, the ServerName needs to be set in /etc/apache2/conf-available/fqdn.conf, namely:
+	echo "ServerName nodeX.example.com" | sudo tee /etc/apache2/conf-available/fqdn.conf
+    sudo ln -s /etc/apache2/conf-available/fqdn.conf /etc/apache2/conf-enabled/fqdn.conf
 
 * In **/etc/apache2/conf.d/wsgi-snf_voms.conf** add::
 
