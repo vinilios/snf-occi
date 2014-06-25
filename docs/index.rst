@@ -104,7 +104,7 @@ Requirements
 First, you need to install the required dependencies which can be found here:
 
 * `pyssf at pypi <https://pypi.python.org/pypi/pyssf>`_
-* `Kamaki repository  <https://code.grnet.gr/projects/kamaki>`_  (Detailed description for installation of kamaki can be found in this `Guide <http://www.synnefo.org/docs/kamaki/latest/installation.html>`_).
+* `Kamaki repository  <https://github.com/grnet/kamaki>`_  (Detailed description for installation of kamaki can be found in this `Guide <http://www.synnefo.org/docs/kamaki/latest/installation.html>`_).
 
 Moreover, some additional packages need to be installed::
 
@@ -187,7 +187,7 @@ To enable VOMS authentication in snf-occi, the existence of a working Apache ins
 
 	$ sudo adduser synnefo
 	
-Assuming that the snf-occi server has the FQDM nodeX.example.com, then the following configurations are required:
+Assuming that the snf-occi server has the FQDN nodeX.example.com, then the following configurations are required:
 
 
 * In **/etc/apache2/sites-enabled/snf_VOMS** add::
@@ -248,7 +248,7 @@ Assuming that the snf-occi server has the FQDM nodeX.example.com, then the follo
 
 * In **/etc/apache2/conf.d/wsgi-snf_voms.conf** add::
 
-	WSGIScriptAlias /main /var/www/cgi-bin/snf_voms/main
+	WSGIScriptAlias /main /usr/lib/cgi-bin/snf_voms/main
 	WSGIScriptAlias /main /usr/lib/cgi-bin/snf_voms/main_auth
 
 	<Location "/main">
@@ -263,7 +263,7 @@ Assuming that the snf-occi server has the FQDM nodeX.example.com, then the follo
 	$ ln /usr/lib/cgi-bin/snf_voms/snf_voms.py /usr/lib/cgi-bin/snf_voms/main
 	$ cp snf-occi/snfOCCI/httpd/snf_voms_auth.py /usr/lib/cgi-bin/snf_voms/snf_voms_auth.py
 	$ ln /usr/lib/cgi-bin/snf_voms/snf_voms_auth.py /usr/lib/cgi-bin/snf_voms/main_auth
-	$ cp snf-occi/snfOCCI/httpd/snf_voms_auth-paste.ini /home/synneo/snf_voms_auth-paste.ini
+	$ cp snf-occi/snfOCCI/httpd/snf_voms_auth-paste.ini /home/synnefo/snf_voms_auth-paste.ini
 	$ cp snf-occi/snfOCCI/httpd/snf_voms-paste.ini /home/synnefo/snf_voms-paste.ini 
 
 
@@ -305,8 +305,8 @@ Moreover, the vomsdir information and the vomses file need to be created and alt
 * Creation / Extension of the vomses file::
 
 	$ cat >> /etc/vomses <<EOF
-	"fedcloud.egi.eu" "voms1.egee.cesnet.cz" "15002" "/DC=org/DC=terena/DC=tcs/OU=Domain Control Validated/CN=voms1.egee.cesnet.cz" "fedcloud.egi.eu" "24"
-	"fedcloud.egi.eu" "voms2.grid.cesnet.cz" "15002" "/DC=org/DC=terena/DC=tcs/OU=Domain Control Validated /CN=voms2.grid.cesnet.cz" "fedcloud.egi.eu" "24"
+	"fedcloud.egi.eu" "voms1.egee.cesnet.cz" "15002" "/DC=org/DC=terena/DC=tcs/C=CZ/O=CESNET/CN=voms1.egee.cesnet.cz" "fedcloud.egi.eu" "24"
+    "fedcloud.egi.eu" "voms2.grid.cesnet.cz" "15002" "/DC=org/DC=terena/DC=tcs/C=CZ/O=CESNET/CN=voms2.grid.cesnet.cz" "fedcloud.egi.eu" "24"
 	EOF
 
 Upon the completion of all configuration actions, start (or restart) the Apache server:
