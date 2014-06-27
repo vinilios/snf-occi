@@ -190,7 +190,7 @@ To enable VOMS authentication in snf-occi, the existence of a working Apache ins
 Assuming that the snf-occi server has the FQDN nodeX.example.com, then the following configurations are required:
 
 
-* In **/etc/apache2/sites-enabled/snf_VOMS** add::
+* In **/etc/apache2/sites-enabled/snf_VOMS** add (In Apache 2.4.6, name this file as /etc/apache2/sites-enabled/snf_VOMS.conf)::
 
 	WSGIDaemonProcess snf_voms user=synnefo group=nogroup processes=3 threads=10
 	Listen 8888
@@ -268,6 +268,7 @@ Assuming that the snf-occi server has the FQDN nodeX.example.com, then the follo
 	$ ln /usr/lib/cgi-bin/snf_voms/snf_voms_auth.py /usr/lib/cgi-bin/snf_voms/main_auth
 	$ cp snf-occi/snfOCCI/httpd/snf_voms_auth-paste.ini /home/synnefo/snf_voms_auth-paste.ini
 	$ cp snf-occi/snfOCCI/httpd/snf_voms-paste.ini /home/synnefo/snf_voms-paste.ini 
+	$ chown -R synnefo:synnefo /home/synnefo/snf_voms*
 
 
 
