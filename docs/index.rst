@@ -248,6 +248,14 @@ Assuming that the snf-occi server has the FQDN nodeX.example.com, then the follo
 	Note: In Ubuntu 14.04, the ServerName needs to be set in /etc/apache2/conf-available/fqdn.conf, namely:
 	echo "ServerName nodeX.example.com" | sudo tee /etc/apache2/conf-available/fqdn.conf
     sudo ln -s /etc/apache2/conf-available/fqdn.conf /etc/apache2/conf-enabled/fqdn.conf
+    
+ * In Apache 2.4.x, the following lines need to be added in /etc/apache2/apache2.conf::
+
+   <Directory /usr/lib/cgi-bin/snf_voms/>
+      Options FollowSymLinks
+      AllowOverride None
+      Require all granted
+   </Directory>
 
 * In **/etc/apache2/conf.d/wsgi-snf_voms.conf** add::
 
