@@ -15,11 +15,14 @@
 
 
 from snfOCCI.config import SERVER_CONFIG
+from snfOCCI.extensions import snf_addons
 
-from occi.backend import ActionBackend, KindBackend
+from occi.backend import ActionBackend, KindBackend, MixinBackend
+from occi.core_model import Mixin
 from occi.extensions import infrastructure
 from occi.exceptions import HTTPError
-
+from base64 import b64encode, b64decode
+import json, yaml
 
 #Compute Backend for snf-occi-server
 
@@ -32,6 +35,10 @@ class MyBackend(KindBackend, ActionBackend):
 
     def replace(self, old, new, extras):
         raise HTTPError(501, "Replace is currently no applicable")
+
+class SNFBackend(MixinBackend, ActionBackend):
+    
+    pass
 
 
 class ComputeBackend(MyBackend):
@@ -48,14 +55,67 @@ class ComputeBackend(MyBackend):
             snf = extras['snf']
 
             for mixin in entity.mixins:
-                if mixin.related[0].term == 'os_tpl':
-                    image_id = mixin.attributes['occi.core.id']
-                if mixin.related[0].term == 'resource_tpl':
-                    flavor = mixin
-                    flavor_id = mixin.attributes['occi.core.id']
+                if 'occi.core.id' in mixin.attributes:
+                    if mixin.related[0].term == 'os_tpl':
+                        image_id = mixin.attributes['occi.core.id']
+                    elif mixin.related[0].term == 'resource_tpl':
+                        flavor = mixin
+                        flavor_id = mixin.attributes['occi.core.id']
 
             vm_name = entity.attributes['occi.core.title']
-            info = snf.create_server(vm_name, flavor_id, image_id)
+
+            user_data = None
+            user_pub_key = None
+            meta_json = None
+            personality = []
+            
+            if entity.attributes.has_key('org.openstack.compute.user_data'):
+                            user_data = b64decode(entity.attributes['org.openstack.compute.user_data'])
+                        
+            if entity.attributes.has_key('org.openstack.credentials.publickey.data'):
+                            user_pub_key = entity.attributes['org.openstack.credentials.publickey.data']
+            
+           # Implementation for the meta.json file to use the respective NoCloud cloudinit driver
+           # if user_data and user_pub_key:
+           #     meta_json = json.dumps({'dsmode':'net','public-keys':user_pub_key,'user-data': user_data}, sort_keys=True,indent=4, separators=(',', ': ') )
+           # elif user_data:
+            #    meta_json = json.dumps({'dsmode':'net','user-data': user_data}, sort_keys=True,indent=4, separators=(',', ': ') )
+           # elif user_pub_key:
+            #    meta_json = json.dumps({'dsmode':'net','public-keys':user_pub_key}, sort_keys=True,indent=4, separators=(',', ': ') )
+           
+          #  if meta_json:
+           #     personality.append({'contents':b64encode(meta_json),
+            #                            'path':' /var/lib/cloud/seed/config_drive/meta.js'})
+            #    info = snf.create_server(vm_name, flavor_id, image_id,personality=personality)
+           # else:
+            #    info = snf.create_server(vm_name, flavor_id, image_id)
+            
+            if user_data:
+                userData = user_data
+            if user_pub_key:
+                pub_keyDict = dict([('public-keys',user_pub_key)])
+                pub_key = yaml.dump(pub_keyDict)
+           
+            if user_data and user_pub_key:
+                print "Info: Contextualization is performed with user data and public key"
+                personality.append({'contents':b64encode(userData),
+                                        'path':'/var/lib/cloud/seed/nocloud-net/user-data'})
+                personality.append({'contents':b64encode(pub_key),
+                                        'path':'/var/lib/cloud/seed/nocloud-net/meta-data'})
+                info = snf.create_server(vm_name, flavor_id, image_id,personality=personality)
+            elif user_data:
+                print "Info: Contextualization is performed with user data"
+                personality.append({'contents':b64encode(userData),
+                                        'path':'/var/lib/cloud/seed/nocloud-net/user-data'})
+                info = snf.create_server(vm_name, flavor_id, image_id,personality=personality)
+            elif user_pub_key:
+                print "Info: Contextualization is performed with public key"
+                personality.append({'contents':b64encode(pub_key),
+                                        'path':'/var/lib/cloud/seed/nocloud-net/meta-data'})
+                info = snf.create_server(vm_name, flavor_id, image_id,personality=personality)
+            else:
+                info = snf.create_server(vm_name, flavor_id, image_id)
+
            
             entity.attributes['occi.compute.state'] = 'inactive'
             entity.attributes['occi.core.id'] = str(info['id'])

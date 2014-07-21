@@ -104,6 +104,7 @@ class VomsAuthN():
             raise ClientError(
                               'No loading of VOMS json file',
                 details='The VOMS json file located in %s was not loaded' % VOMS_POLICY)
+            return ClientError
         
         self._no_verify = False
 

@@ -27,11 +27,11 @@ import json
 import uuid
 
 from snfOCCI.registry import snfRegistry
-from snfOCCI.compute import ComputeBackend
+from snfOCCI.compute import ComputeBackend, SNFBackend
 from snfOCCI.config import SERVER_CONFIG, KAMAKI_CONFIG, VOMS_CONFIG
 import snf_voms
 from snfOCCI.network import NetworkBackend, IpNetworkBackend, IpNetworkInterfaceBackend, NetworkInterfaceBackend
-
+from snfOCCI.extensions import snf_addons
 
 from kamaki.clients.compute import ComputeClient
 from kamaki.clients.cyclades import CycladesClient
@@ -90,6 +90,8 @@ class MyAPP(wsgi.Application):
         self.register_backend(NETWORKINTERFACE,NETWORKINTERFACE_BACKEND)
         self.register_backend(IPNETWORKINTERFACE, IPNETWORKINTERFACE_BACKEND)
      
+        self.register_backend(snf_addons.SNF_USER_DATA_EXT, SNFBackend())  
+        self.register_backend(snf_addons.SNF_KEY_PAIR_EXT,  SNFBackend())  
         
     def refresh_images(self, snf, client):
         try:
@@ -117,7 +119,7 @@ class MyAPP(wsgi.Application):
             
     def refresh_flavors_norecursive(self, snf, client):
         flavors = snf.list_flavors(True)
-        print "Retrieving details for each image id"
+        print "Retrieving details for flavors"
         for flavor in flavors:
             FLAVOR_ATTRIBUTES = {'occi.core.id': flavor['id'],
                                  'occi.compute.cores': str(flavor['vcpus']),
@@ -346,9 +348,10 @@ def application(env, start_response):
     env['HTTP_AUTH_TOKEN'] = get_user_token(user_dn)
    
     # Get user authentication details
-    pool = False
-    astakosClient = astakos.AstakosClient(env['HTTP_AUTH_TOKEN'], KAMAKI_CONFIG['astakos_url'] , use_pool = pool)
-
+    #pool = False
+    #astakosClient = astakos.AstakosClient(env['HTTP_AUTH_TOKEN'], KAMAKI_CONFIG['astakos_url'] , use_pool = pool)
+    astakosClient = astakos.AstakosClient(KAMAKI_CONFIG['astakos_url'], env['HTTP_AUTH_TOKEN'])
+         
     user_details = astakosClient.authenticate()
     
     response = {'access': {'token':{'issued_at':'','expires': user_details['access']['token']['expires'] , 'id':env['HTTP_AUTH_TOKEN']},
@@ -384,9 +387,11 @@ def tenant_application(env, start_response):
             raise HTTPError(404, "Unauthorized access") 
     # Get user authentication details
     print "@ refresh_user authentication details"
+    #pool = False
+    #astakosClient = astakos.AstakosClient(env['HTTP_AUTH_TOKEN'], KAMAKI_CONFIG['astakos_url'], use_pool=pool)
     astakosClient = astakos.AstakosClient(KAMAKI_CONFIG['astakos_url'], env['HTTP_AUTH_TOKEN'])
     user_details = astakosClient.authenticate()
-   
+    
     response = {'tenants_links': [], 'tenants':[{'description':'Instances of EGI Federated Clouds TF','enabled': True, 'id':user_details['access']['user']['id'],'name':'EGI_FCTF'}]}           
  
     status = '200 OK'
