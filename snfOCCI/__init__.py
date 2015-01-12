@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014 GRNET S.A.
+# Copyright (C) 2012-2015 GRNET S.A.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,9 +37,9 @@ which point to this function call (<module name>:function).
 from snfOCCI import APIserver
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def main(global_config, **settings):
     """
-This is the entry point for paste into the OCCI OS world.
-"""
+    This is the entry point for paste into the OCCI OS world.
+    """
     return APIserver.MyAPP()

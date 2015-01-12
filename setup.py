@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014 GRNET S.A.
+# Copyright (C) 2012-2015 GRNET S.A.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,15 +15,18 @@
 
 from setuptools import setup
 
+requires = ['kamaki>=0.13.1', 'webob', 'eventlet']
+
 setup(
     name='snf-occi',
     version='0.1',
     description='OCCI to Openstack/Cyclades API bridge',
     url='https://github.com/grnet/snf-occi',
     license='GPLv3',
-    packages = ['snfOCCI','snfOCCI.snf_voms', 'snfOCCI.extensions'],
-    entry_points = ''' 
+    packages=['snfOCCI', 'snfOCCI.snf_voms', 'snfOCCI.extensions'],
+    entry_points='''
         [paste.app_factory]
         snf_occi_app = snfOCCI:main
-        ''',   
+        ''',
+    install_requires=requires,
     )

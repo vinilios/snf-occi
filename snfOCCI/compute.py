@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014 GRNET S.A.
+# Copyright (C) 2012-2015 GRNET S.A.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,16 +15,17 @@
 
 
 from snfOCCI.config import SERVER_CONFIG
-from snfOCCI.extensions import snf_addons
+# from snfOCCI.extensions import snf_addons
 
 from occi.backend import ActionBackend, KindBackend, MixinBackend
-from occi.core_model import Mixin
+# from occi.core_model import Mixin
 from occi.extensions import infrastructure
 from occi.exceptions import HTTPError
 from base64 import b64encode, b64decode
-import json, yaml
+import yaml
 
-#Compute Backend for snf-occi-server
+# Compute Backend for snf-occi-server
+
 
 class MyBackend(KindBackend, ActionBackend):
 
@@ -36,9 +37,9 @@ class MyBackend(KindBackend, ActionBackend):
     def replace(self, old, new, extras):
         raise HTTPError(501, "Replace is currently no applicable")
 
+
 class SNFBackend(MixinBackend, ActionBackend):
-    
-    pass
+    """SNF Backend"""
 
 
 class ComputeBackend(MyBackend):
@@ -48,8 +49,7 @@ class ComputeBackend(MyBackend):
 
     def create(self, entity, extras):
 
-        #Creating new compute instance
-        
+        # Creating new compute instance
         try:
 
             snf = extras['snf']
@@ -66,150 +66,175 @@ class ComputeBackend(MyBackend):
 
             user_data = None
             user_pub_key = None
-            meta_json = None
+            # meta_json = None
             personality = []
-            
-            if entity.attributes.has_key('org.openstack.compute.user_data'):
-                            user_data = b64decode(entity.attributes['org.openstack.compute.user_data'])
-                        
-            if entity.attributes.has_key('org.openstack.credentials.publickey.data'):
-                            user_pub_key = entity.attributes['org.openstack.credentials.publickey.data']
-            
-           # Implementation for the meta.json file to use the respective NoCloud cloudinit driver
-           # if user_data and user_pub_key:
-           #     meta_json = json.dumps({'dsmode':'net','public-keys':user_pub_key,'user-data': user_data}, sort_keys=True,indent=4, separators=(',', ': ') )
-           # elif user_data:
-            #    meta_json = json.dumps({'dsmode':'net','user-data': user_data}, sort_keys=True,indent=4, separators=(',', ': ') )
-           # elif user_pub_key:
-            #    meta_json = json.dumps({'dsmode':'net','public-keys':user_pub_key}, sort_keys=True,indent=4, separators=(',', ': ') )
-           
-          #  if meta_json:
-           #     personality.append({'contents':b64encode(meta_json),
-            #                            'path':' /var/lib/cloud/seed/config_drive/meta.js'})
-            #    info = snf.create_server(vm_name, flavor_id, image_id,personality=personality)
-           # else:
-            #    info = snf.create_server(vm_name, flavor_id, image_id)
-            
+
+            if 'org.openstack.compute.user_data' in entity.attributes:
+                user_data = b64decode(entity.attributes[
+                    'org.openstack.compute.user_data'])
+
+            if 'org.openstack.credentials.publickey.data' in entity.attributes:
+                user_pub_key = entity.attributes[
+                    'org.openstack.credentials.publickey.data']
+
+            # Implementation for the meta.json file to use the respective
+            # NoCloud cloudinit driver
+            # if user_data and user_pub_key:
+            #     meta_json = json.dumps(
+            #       {
+            #           'dsmode':'net',
+            #           'public-keys':user_pub_key,
+            #           'user-data': user_data},
+            #       sort_keys=True,indent=4, separators=(',', ': ') )
+            # elif user_data:
+            #    meta_json = json.dumps(
+            #       {'dsmode':'net','user-data': user_data},
+            #       sort_keys=True,indent=4, separators=(',', ': ') )
+            # elif user_pub_key:
+            #    meta_json = json.dumps(
+            #       {'dsmode':'net','public-keys':user_pub_key},
+            #       sort_keys=True,indent=4, separators=(',', ': ') )
+
+            # if meta_json:
+            #   personality.append({
+            #       'contents':b64encode(meta_json),
+            #       'path':' /var/lib/cloud/seed/config_drive/meta.js'})
+            #   info = snf.create_server(
+            #       vm_name, flavor_id, image_id,personality=personality)
+            # else:
+            #   info = snf.create_server(vm_name, flavor_id, image_id)
+
             if user_data:
                 userData = user_data
             if user_pub_key:
-                pub_keyDict = dict([('public-keys',user_pub_key)])
+                pub_keyDict = dict([('public-keys', user_pub_key)])
                 pub_key = yaml.dump(pub_keyDict)
-           
+
             if user_data and user_pub_key:
-                print "Info: Contextualization is performed with user data and public key"
-                personality.append({'contents':b64encode(userData),
-                                        'path':'/var/lib/cloud/seed/nocloud-net/user-data'})
-                personality.append({'contents':b64encode(pub_key),
-                                        'path':'/var/lib/cloud/seed/nocloud-net/meta-data'})
-                info = snf.create_server(vm_name, flavor_id, image_id,personality=personality)
+                print "Info: Contextualization is performed with user data" + \
+                      " and public key"
+                personality.append({
+                    'contents': b64encode(userData),
+                    'path': '/var/lib/cloud/seed/nocloud-net/user-data'})
+                personality.append({
+                    'contents': b64encode(pub_key),
+                    'path': '/var/lib/cloud/seed/nocloud-net/meta-data'})
+                info = snf.create_server(
+                    vm_name, flavor_id, image_id, personality=personality)
             elif user_data:
                 print "Info: Contextualization is performed with user data"
-                personality.append({'contents':b64encode(userData),
-                                        'path':'/var/lib/cloud/seed/nocloud-net/user-data'})
-                info = snf.create_server(vm_name, flavor_id, image_id,personality=personality)
+                personality.append({
+                    'contents': b64encode(userData),
+                    'path': '/var/lib/cloud/seed/nocloud-net/user-data'})
+                info = snf.create_server(
+                    vm_name, flavor_id, image_id, personality=personality)
             elif user_pub_key:
                 print "Info: Contextualization is performed with public key"
-                personality.append({'contents':b64encode(pub_key),
-                                        'path':'/var/lib/cloud/seed/nocloud-net/meta-data'})
-                info = snf.create_server(vm_name, flavor_id, image_id,personality=personality)
+                personality.append({
+                    'contents': b64encode(pub_key),
+                    'path': '/var/lib/cloud/seed/nocloud-net/meta-data'})
+                info = snf.create_server(
+                    vm_name, flavor_id, image_id, personality=personality)
             else:
                 info = snf.create_server(vm_name, flavor_id, image_id)
 
-           
             entity.attributes['occi.compute.state'] = 'inactive'
             entity.attributes['occi.core.id'] = str(info['id'])
-            entity.attributes['occi.compute.architecture'] = SERVER_CONFIG['compute_arch']
-            entity.attributes['occi.compute.cores'] = flavor.attributes['occi.compute.cores']
-            entity.attributes['occi.compute.memory'] = flavor.attributes['occi.compute.memory']
-           
-            entity.actions = [infrastructure.STOP,
-                               infrastructure.SUSPEND,
-                               infrastructure.RESTART]
+            entity.attributes['occi.compute.architecture'] = SERVER_CONFIG[
+                'compute_arch']
+            entity.attributes['occi.compute.cores'] = flavor.attributes[
+                'occi.compute.cores']
+            entity.attributes['occi.compute.memory'] = flavor.attributes[
+                'occi.compute.memory']
 
-            # entity.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':info['id']}
-            info['adminPass']= ""
+            entity.actions = [
+                infrastructure.STOP,
+                infrastructure.SUSPEND,
+                infrastructure.RESTART]
+
+            # entity.attributes['occi.compute.hostname'] = SERVER_CONFIG[
+            #   'hostname'] % {'id':info['id']}
+            info['adminPass'] = ""
             print info
             networkIDs = info['addresses'].keys()
-                #resource.attributes['occi.compute.hostname'] = SERVER_CONFIG['hostname'] % {'id':int(key)}
-            if len(networkIDs)>0:    
-                entity.attributes['occi.compute.hostname'] =  str(info['addresses'][networkIDs[0]][0]['addr'])
+            # resource.attributes['occi.compute.hostname'] = SERVER_CONFIG[
+            #   'hostname'] % {'id':int(key)}
+            if len(networkIDs) > 0:
+                entity.attributes['occi.compute.hostname'] = str(
+                    info['addresses'][networkIDs[0]][0]['addr'])
             else:
                 entity.attributes['occi.compute.hostname'] = ""
-               
-        except (UnboundLocalError, KeyError) as e:
+
+        except (UnboundLocalError, KeyError):
             raise HTTPError(406, 'Missing details about compute instance')
-            
 
     def retrieve(self, entity, extras):
-        
-        #Triggering cyclades to retrieve up to date information
+        """Triggering cyclades to retrieve up to date information"""
 
         snf = extras['snf']
 
         vm_id = int(entity.attributes['occi.core.id'])
         vm_info = snf.get_server_details(vm_id)
         vm_state = vm_info['status']
-        
-        status_dict = {'ACTIVE' : 'active',
-                       'STOPPED' : 'inactive',
-                       'REBOOT' : 'inactive',
-                       'ERROR' : 'inactive',
-                       'BUILD' : 'inactive',
-                       'DELETED' : 'inactive',
-                       'UNKNOWN' : 'inactive'
-                       }
-        
+
+        status_dict = {
+            'ACTIVE': 'active',
+            'STOPPED': 'inactive',
+            'REBOOT': 'inactive',
+            'ERROR': 'inactive',
+            'BUILD': 'inactive',
+            'DELETED': 'inactive',
+            'UNKNOWN': 'inactive'
+        }
+
         entity.attributes['occi.compute.state'] = status_dict[vm_state]
-                
+
         if vm_state == 'ERROR':
             raise HTTPError(500, 'ERROR building the compute instance')
 
         else:
             if entity.attributes['occi.compute.state'] == 'inactive':
                 entity.actions = [infrastructure.START]
-            if entity.attributes['occi.compute.state'] == 'active': 
-                entity.actions = [infrastructure.STOP, infrastructure.SUSPEND, infrastructure.RESTART]
-
+            if entity.attributes['occi.compute.state'] == 'active':
+                entity.actions = [
+                    infrastructure.STOP,
+                    infrastructure.SUSPEND,
+                    infrastructure.RESTART]
 
     def delete(self, entity, extras):
-
-        #Deleting compute instance
-        print "Deleting VM" + str(vm_id)
+        """Deleting compute instance"""
         snf = extras['snf']
         vm_id = int(entity.attributes['occi.core.id'])
+        print "Deleting VM" + str(vm_id)
         snf.delete_server(vm_id)
 
+    def get_vm_actions(self, entity, vm_state):
 
-    def get_vm_actions(self, entity ,vm_state):
-        
         actions = []
-        
-        status_dict = {'ACTIVE' : 'active',
-                       'STOPPED' : 'inactive',
-                       'REBOOT' : 'inactive',
-                       'ERROR' : 'inactive',
-                       'BUILD' : 'inactive',
-                       'DELETED' : 'inactive',
-                       'UNKNOWN' : 'inactive'
-                       }
+
+        status_dict = {
+            'ACTIVE': 'active',
+            'STOPPED': 'inactive',
+            'REBOOT': 'inactive',
+            'ERROR': 'inactive',
+            'BUILD': 'inactive',
+            'DELETED': 'inactive',
+            'UNKNOWN': 'inactive'
+        }
 
         if vm_state in status_dict:
-            
             entity.attributes['occi.compute.state'] = status_dict[vm_state]
             if vm_state == 'ACTIVE':
                 actions.append(infrastructure.STOP)
                 actions.append(infrastructure.RESTART)
             elif vm_state in ('STOPPED'):
                 actions.append(infrastructure.START)
-                
             return actions
         else:
             raise HTTPError(500, 'Undefined status of the VM')
 
     def action(self, entity, action, attributes, extras):
-
-        #Triggering action to compute instances
+        """Triggering action to compute instances"""
 
         client = extras['client']
         snf = extras['snf']
@@ -217,32 +242,30 @@ class ComputeBackend(MyBackend):
         vm_id = int(entity.attributes['occi.core.id'])
         vm_info = snf.get_server_details(vm_id)
         vm_state = vm_info['status']
-        
+
         # Define the allowed actions depending on the state of the VM
-        entity.actions = self.get_vm_actions(entity,vm_state)
-        
+        entity.actions = self.get_vm_actions(entity, vm_state)
 
         if vm_state == 'ERROR':
             raise HTTPError(500, 'ERROR building the compute instance')
 
         else:
             if action not in entity.actions:
-                raise AttributeError("This action is currently no applicable in the current status of the VM (CURRENT_STATE = " + str(vm_state)+ ").")
-            
+                raise AttributeError(
+                    "This action is currently no applicable in the current"
+                    "status of the VM (CURRENT_STATE = %s )." % vm_state)
+
             elif action == infrastructure.START:
-                print "Starting VM" + str(vm_id)
+                print "Starting VM", vm_id
                 client.start_server(vm_id)
-                
+
             elif action == infrastructure.STOP:
-                print "Stopping VM"  + str(vm_id)
+                print "Stopping VM", vm_id
                 client.shutdown_server(vm_id)
-    
+
             elif action == infrastructure.RESTART:
-                print "Restarting VM" + str(vm_id)
+                print "Restarting VM", vm_id
                 snf.reboot_server(vm_id)
 
             elif action == infrastructure.SUSPEND:
                 raise HTTPError(501, "This actions is currently no applicable")
-            
-            
-
