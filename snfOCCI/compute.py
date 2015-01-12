@@ -52,7 +52,7 @@ class ComputeBackend(MyBackend):
         # Creating new compute instance
         try:
 
-            snf = extras['snf']
+            snf = extras['compute_client']
 
             for mixin in entity.mixins:
                 if 'occi.core.id' in mixin.attributes:
@@ -171,7 +171,7 @@ class ComputeBackend(MyBackend):
     def retrieve(self, entity, extras):
         """Triggering cyclades to retrieve up to date information"""
 
-        snf = extras['snf']
+        snf = extras['compute_client']
 
         vm_id = int(entity.attributes['occi.core.id'])
         vm_info = snf.get_server_details(vm_id)
@@ -203,7 +203,7 @@ class ComputeBackend(MyBackend):
 
     def delete(self, entity, extras):
         """Deleting compute instance"""
-        snf = extras['snf']
+        snf = extras['compute_client']
         vm_id = int(entity.attributes['occi.core.id'])
         print "Deleting VM" + str(vm_id)
         snf.delete_server(vm_id)
@@ -235,9 +235,7 @@ class ComputeBackend(MyBackend):
 
     def action(self, entity, action, attributes, extras):
         """Triggering action to compute instances"""
-
-        client = extras['client']
-        snf = extras['snf']
+        snf = extras['compute_client']
 
         vm_id = int(entity.attributes['occi.core.id'])
         vm_info = snf.get_server_details(vm_id)
@@ -257,11 +255,11 @@ class ComputeBackend(MyBackend):
 
             elif action == infrastructure.START:
                 print "Starting VM", vm_id
-                client.start_server(vm_id)
+                snf.start_server(vm_id)
 
             elif action == infrastructure.STOP:
                 print "Stopping VM", vm_id
-                client.shutdown_server(vm_id)
+                snf.shutdown_server(vm_id)
 
             elif action == infrastructure.RESTART:
                 print "Restarting VM", vm_id

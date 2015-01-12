@@ -27,18 +27,15 @@ import uuid
 
 from snfOCCI.registry import snfRegistry
 from snfOCCI.compute import ComputeBackend, SNFBackend
-from snfOCCI.config import SERVER_CONFIG, KAMAKI_CONFIG, VOMS_CONFIG
+from snfOCCI.config import SERVER_CONFIG, VOMS_CONFIG, SNF_AUTH, SNF_AUTH_TOKEN
 import snf_voms
 from snfOCCI.network import (
     NetworkBackend, IpNetworkBackend, IpNetworkInterfaceBackend,
     NetworkInterfaceBackend)
 from snfOCCI.extensions import snf_addons
 
-from kamaki.clients.compute import ComputeClient
-from kamaki.clients.cyclades import CycladesClient
-from kamaki.clients import astakos
 from kamaki.clients import ClientError
-from kamaki.cli import config as kamaki_config
+from kamaki.clients.cyclades import CycladesComputeClient
 from kamaki.clients.cyclades import CycladesNetworkClient
 
 from occi.core_model import Mixin, Resource
@@ -96,9 +93,9 @@ class MyAPP(wsgi.Application):
         self.register_backend(snf_addons.SNF_USER_DATA_EXT, SNFBackend())
         self.register_backend(snf_addons.SNF_KEY_PAIR_EXT,  SNFBackend())
 
-    def refresh_images(self, snf, client):
+    def refresh_images(self, compute_client):
         try:
-            images = snf.list_images()
+            images = compute_client.list_images()
             for image in images:
                 IMAGE_ATTRIBUTES = {'occi.core.id': str(image['id'])}
                 IMAGE = Mixin(
@@ -111,10 +108,10 @@ class MyAPP(wsgi.Application):
         except:
             raise HTTPError(404, "Unauthorized access")
 
-    def refresh_flavors(self, snf, client):
-        flavors = snf.list_flavors()
+    def refresh_flavors(self, compute_client):
+        flavors = compute_client.list_flavors()
         for flavor in flavors:
-            details = snf.get_flavor_details(flavor['id'])
+            details = compute_client.get_flavor_details(flavor['id'])
             FLAVOR_ATTRIBUTES = {
                 'occi.core.id': flavor['id'],
                 'occi.compute.cores': str(details['vcpus']),
@@ -128,8 +125,8 @@ class MyAPP(wsgi.Application):
                 attributes=FLAVOR_ATTRIBUTES)
             self.register_backend(FLAVOR, MixinBackend())
 
-    def refresh_flavors_norecursive(self, snf, client):
-        flavors = snf.list_flavors(True)
+    def refresh_flavors_norecursive(self, compute_client):
+        flavors = compute_client.list_flavors(True)
         print "Retrieving details for flavors"
         for flavor in flavors:
             FLAVOR_ATTRIBUTES = {
@@ -147,8 +144,8 @@ class MyAPP(wsgi.Application):
                 attributes=FLAVOR_ATTRIBUTES)
             self.register_backend(FLAVOR, MixinBackend())
 
-    def refresh_network_instances(self, client):
-        network_details = client.list_networks(detail='True')
+    def refresh_network_instances(self, network_client):
+        network_details = network_client.list_networks(detail='True')
         resources = self.registry.resources
         occi_keys = resources.keys()
 
@@ -168,10 +165,10 @@ class MyAPP(wsgi.Application):
 
                 self.registry.add_resource(netID, snf_net, None)
 
-    def refresh_compute_instances(self, snf, client):
+    def refresh_compute_instances(self, compute_client):
         '''Syncing registry with cyclades resources'''
 
-        servers = snf.list_servers()
+        servers = compute_client.list_servers()
         snf_keys = []
         for server in servers:
             snf_keys.append(str(server['id']))
@@ -191,13 +188,14 @@ class MyAPP(wsgi.Application):
 
         for key in diff:
 
-            details = snf.get_server_details(int(key))
-            flavor = snf.get_flavor_details(details['flavor']['id'])
+            details = compute_client.get_server_details(int(key))
+            flavor = compute_client.get_flavor_details(details['flavor']['id'])
 
             try:
                 print "line 65:Finished getting image details for VM " + \
                       key + " with ID %s" % details['flavor']['id']
-                image = snf.get_image_details(details['image']['id'])
+                image = compute_client.get_image_details(
+                    details['image']['id'])
 
                 for i in self.registry.backends:
                     if i.term == occify_terms(str(image['name'])):
@@ -255,7 +253,7 @@ class MyAPP(wsgi.Application):
                                 'occi.networkinterface.mac': str(
                                     item['mac_address']),
                                 'occi.networkinterface.address': ip4address,
-                                'occi.networkinterface.ip6':  ip6address                      
+                                'occi.networkinterface.ip6':  ip6address
                             }
                     elif len(details['addresses'][netKey]):
                         NET_LINK.attributes = {
@@ -310,39 +308,30 @@ class MyAPP(wsgi.Application):
                 return [str(response)]
 
         if self.enable_voms:
-            if 'HTTP_X_AUTH_TOKEN' om req.environ:
-                environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
-                compClient = ComputeClient(
-                    KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
-                cyclClient = CycladesClient(
-                    KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
-                netClient = CycladesNetworkClient(
-                    KAMAKI_CONFIG['network_url'], environ['HTTP_AUTH_TOKEN'])
+            environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
+            cyclClient = CycladesComputeClient(
+                SNF_AUTH.get_service_endpoint(
+                    CycladesComputeClient.service_type),
+                environ['HTTP_X_AUTH_TOKEN'])
+            netClient = CycladesNetworkClient(
+                SNF_AUTH.get_service_endpoint(
+                    CycladesNetworkClient.service_type),
+                environ['HTTP_X_AUTH_TOKEN'])
 
-                try:
-                    # Up-to-date flavors and images
-                    self.refresh_images(compClient, cyclClient)
-                    self.refresh_flavors_norecursive(compClient, cyclClient)
-                    self.refresh_network_instances(netClient)
-                    self.refresh_compute_instances(compClient, cyclClient)
-                    # token will be represented in self.extras
-                    return self._call_occi(
-                        environ, response,
-                        security=None,
-                        token=environ['HTTP_AUTH_TOKEN'],
-                        snf=compClient,
-                        client=cyclClient)
-                except HTTPError:
-                    print "Exception from unauthorized access!"
-                    status = '401 Not Authorized'
-                    headers = [
-                        ('Content-Type', 'text/html'),
-                        ('Www-Authenticate', auth_endpoint)]
-                    response(status, headers)
-                    return [str(response)]
-
-            else:
-                # raise HTTPError(404, "Unauthorized access")
+            try:
+                # Up-to-date flavors and images
+                self.refresh_images(cyclClient)
+                self.refresh_flavors_norecursive(cyclClient)
+                self.refresh_network_instances(netClient)
+                self.refresh_compute_instances(cyclClient)
+                # token will be represented in self.extras
+                return self._call_occi(
+                    environ, response,
+                    security=None,
+                    token=environ['HTTP_AUTH_TOKEN'],
+                    compute_client=cyclClient)
+            except HTTPError:
+                print "Exception from unauthorized access!"
                 status = '401 Not Authorized'
                 headers = [
                     ('Content-Type', 'text/html'),
@@ -351,23 +340,27 @@ class MyAPP(wsgi.Application):
                 return [str(response)]
 
         else:
-            compClient = ComputeClient(
-                KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
-            cyclClient = CycladesClient(
-                KAMAKI_CONFIG['compute_url'], environ['HTTP_AUTH_TOKEN'])
+            environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
+            cyclClient = CycladesComputeClient(
+                SNF_AUTH.get_service_endpoint(
+                    CycladesComputeClient.service_type),
+                environ['HTTP_X_AUTH_TOKEN'])
+            netClient = CycladesNetworkClient(
+                SNF_AUTH.get_service_endpoint(
+                    CycladesNetworkClient.service_type),
+                environ['HTTP_X_AUTH_TOKEN'])
 
             # Up-to-date flavors and images
-            self.refresh_images(compClient, cyclClient)
-            self.refresh_flavors_norecursive(compClient, cyclClient)
-            self.refresh_network_instances(cyclClient)
-            self.refresh_compute_instances(compClient, cyclClient)
+            self.refresh_images(cyclClient)
+            self.refresh_flavors_norecursive(cyclClient)
+            self.refresh_network_instances(netClient)
+            self.refresh_compute_instances(cyclClient)
             # token will be represented in self.extras
             return self._call_occi(
                 environ, response,
                 security=None,
                 token=environ['HTTP_AUTH_TOKEN'],
-                snf=compClient,
-                client=cyclClient)
+                compute_client=cyclClient)
 
 
 def application(env, start_response):
@@ -380,13 +373,7 @@ def application(env, start_response):
     env['HTTP_AUTH_TOKEN'] = get_user_token(user_dn)
 
     # Get user authentication details
-    # pool = False
-    # astakosClient = astakos.AstakosClient(
-    #   env['HTTP_AUTH_TOKEN'], KAMAKI_CONFIG['astakos_url'] , use_pool = pool)
-    astakosClient = astakos.AstakosClient(
-        KAMAKI_CONFIG['astakos_url'], env['HTTP_AUTH_TOKEN'])
-
-    user_details = astakosClient.authenticate()
+    user_details = SNF_AUTH.authenticate(env['HTTP_AUTH_TOKEN'])
 
     response = {
         'access': {
@@ -437,12 +424,7 @@ def tenant_application(env, start_response):
         raise HTTPError(404, "Unauthorized access")
     # Get user authentication details
     print "@ refresh_user authentication details"
-    # pool = False
-    # astakosClient = astakos.AstakosClient(
-    #   env['HTTP_AUTH_TOKEN'], KAMAKI_CONFIG['astakos_url'], use_pool=pool)
-    astakosClient = astakos.AstakosClient(
-        KAMAKI_CONFIG['astakos_url'], env['HTTP_AUTH_TOKEN'])
-    user_details = astakosClient.authenticate()
+    user_details = SNF_AUTH.authenticate(env['HTTP_AUTH_TOKEN'])
 
     response = {
         'tenants_links': [],
@@ -481,5 +463,4 @@ def occify_terms(term_name):
 
 
 def get_user_token(user_dn):
-        config = kamaki_config.Config()
-        return config.get_cloud("default", "token")
+    return SNF_AUTH_TOKEN
