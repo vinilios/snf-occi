@@ -27,7 +27,7 @@ import uuid
 
 from snfOCCI.registry import snfRegistry
 from snfOCCI.compute import ComputeBackend, SNFBackend
-from snfOCCI.config import SERVER_CONFIG, VOMS_CONFIG, SNF_AUTH, SNF_AUTH_TOKEN
+from snfOCCI.config import CNF
 import snf_voms
 from snfOCCI.network import (
     NetworkBackend, IpNetworkBackend, IpNetworkInterfaceBackend,
@@ -37,6 +37,7 @@ from snfOCCI.extensions import snf_addons
 from kamaki.clients import ClientError
 from kamaki.clients.cyclades import CycladesComputeClient
 from kamaki.clients.cyclades import CycladesNetworkClient
+from kamaki.clients import astakos
 
 from occi.core_model import Mixin, Resource
 from occi.backend import MixinBackend
@@ -47,10 +48,13 @@ from occi import wsgi
 from occi.exceptions import HTTPError
 from occi import core_model
 
-# from wsgiref.simple_server import make_server
 from wsgiref.validate import validator
 from webob import Request
-# from pprint import pprint
+
+SNF_CLOUD = CNF.get('kamaki', 'default_cloud')
+SNF_ADMIN_URL = CNF.get_cloud(SNF_CLOUD, 'url')
+SNF_ADMIN_TOKEN = CNF.get_cloud(SNF_CLOUD, 'token')
+SNF_ADMIN = astakos.AstakosClient(SNF_ADMIN_URL, SNF_ADMIN_TOKEN)
 
 
 class MyAPP(wsgi.Application):
@@ -62,9 +66,7 @@ class MyAPP(wsgi.Application):
         """
         Initialization of the WSGI OCCI application for synnefo
         """
-        global ENABLE_VOMS, VOMS_DB
-        ENABLE_VOMS = VOMS_CONFIG['enable_voms']
-        self.enable_voms = ENABLE_VOMS
+        self.enable_voms = CNF.get('voms', 'enable') == 'on'
         super(MyAPP, self).__init__(registry=snfRegistry())
         self._register_backends()
         VALIDATOR_APP = validator(self)
@@ -207,8 +209,8 @@ class MyAPP(wsgi.Application):
                 resource.actions = [START]
                 resource.attributes['occi.core.id'] = key
                 resource.attributes['occi.compute.state'] = 'inactive'
-                resource.attributes['occi.compute.architecture'] = (
-                    SERVER_CONFIG['compute_arch'])
+                resource.attributes['occi.compute.architecture'] = CNF.get(
+                    'server', 'arch')
                 resource.attributes['occi.compute.cores'] = str(
                     flavor['vcpus'])
                 resource.attributes['occi.compute.memory'] = str(
@@ -295,7 +297,7 @@ class MyAPP(wsgi.Application):
         """Enable VOMS Authorization"""
         print "snf-occi application has been called!"
         req = Request(environ)
-        auth_uri = 'https://%s:5000/main' % SERVER_CONFIG['hostname']
+        auth_uri = 'https://%s:5000/main' % CNF.get('server', 'hostname')
         auth_endpoint = 'snf-auth uri=\'%s\'' % auth_uri
 
         if 'HTTP_X_AUTH_TOKEN' not in req.environ:
@@ -310,11 +312,11 @@ class MyAPP(wsgi.Application):
         if self.enable_voms:
             environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
             cyclClient = CycladesComputeClient(
-                SNF_AUTH.get_service_endpoint(
+                SNF_ADMIN.get_service_endpoint(
                     CycladesComputeClient.service_type),
                 environ['HTTP_X_AUTH_TOKEN'])
             netClient = CycladesNetworkClient(
-                SNF_AUTH.get_service_endpoint(
+                SNF_ADMIN.get_service_endpoint(
                     CycladesNetworkClient.service_type),
                 environ['HTTP_X_AUTH_TOKEN'])
 
@@ -342,11 +344,11 @@ class MyAPP(wsgi.Application):
         else:
             environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
             cyclClient = CycladesComputeClient(
-                SNF_AUTH.get_service_endpoint(
+                SNF_ADMIN.get_service_endpoint(
                     CycladesComputeClient.service_type),
                 environ['HTTP_X_AUTH_TOKEN'])
             netClient = CycladesNetworkClient(
-                SNF_AUTH.get_service_endpoint(
+                SNF_ADMIN.get_service_endpoint(
                     CycladesNetworkClient.service_type),
                 environ['HTTP_X_AUTH_TOKEN'])
 
@@ -373,7 +375,7 @@ def application(env, start_response):
     env['HTTP_AUTH_TOKEN'] = get_user_token(user_dn)
 
     # Get user authentication details
-    user_details = SNF_AUTH.authenticate(env['HTTP_AUTH_TOKEN'])
+    user_details = SNF_ADMIN.authenticate(env['HTTP_AUTH_TOKEN'])
 
     response = {
         'access': {
@@ -424,7 +426,7 @@ def tenant_application(env, start_response):
         raise HTTPError(404, "Unauthorized access")
     # Get user authentication details
     print "@ refresh_user authentication details"
-    user_details = SNF_AUTH.authenticate(env['HTTP_AUTH_TOKEN'])
+    user_details = SNF_ADMIN.authenticate(env['HTTP_AUTH_TOKEN'])
 
     response = {
         'tenants_links': [],
@@ -463,4 +465,4 @@ def occify_terms(term_name):
 
 
 def get_user_token(user_dn):
-    return SNF_AUTH_TOKEN
+    return SNF_ADMIN_TOKEN

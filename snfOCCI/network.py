@@ -13,8 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-# from snfOCCI.config import SERVER_CONFIG
-
 from occi.backend import ActionBackend, KindBackend, MixinBackend
 from occi.exceptions import HTTPError
 

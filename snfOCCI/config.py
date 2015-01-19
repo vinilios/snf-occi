@@ -13,28 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-
-SERVER_CONFIG = {
-    'port': 8888,
-    'hostname': '$vm_hostname$',
-    'compute_arch': 'x86'
-    }
-
-VOMS_CONFIG = {
-    'enable_voms': 'True',
-    'voms_policy': '/etc/snf/voms.json',
-    'vomsdir_path': '/etc/grid-security/vomsdir/',
-    'ca_path': '/etc/grid-security/certificates/',
-    'cert_dir': '/etc/ssl/certs/',
-    'key_dir': '/etc/ssl/private/'
-}
-
-
+import os
 from kamaki.cli import config
-KAMAKI_CONFIG = config.Config()
-SNF_CLOUD = KAMAKI_CONFIG.get('global', 'default_cloud')
-SNF_AUTH_URL = KAMAKI_CONFIG.get_cloud(SNF_CLOUD, 'url')
-SNF_AUTH_TOKEN = KAMAKI_CONFIG.get_cloud(SNF_CLOUD, 'token')
 
-from kamaki.clients.astakos import CachedAstakosClient
-SNF_AUTH = CachedAstakosClient(SNF_AUTH_URL, SNF_AUTH_TOKEN)
+_CONFIG_PATH = os.environ.get(
+    'SNF_OCCI_CONFIG', os.path.expanduser('~/snf-occi.conf'))
+CNF = config.Config(_CONFIG_PATH)

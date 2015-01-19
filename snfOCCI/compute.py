@@ -14,7 +14,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from snfOCCI.config import SERVER_CONFIG
+from snfOCCI.config import CNF
 # from snfOCCI.extensions import snf_addons
 
 from occi.backend import ActionBackend, KindBackend, MixinBackend
@@ -140,8 +140,8 @@ class ComputeBackend(MyBackend):
 
             entity.attributes['occi.compute.state'] = 'inactive'
             entity.attributes['occi.core.id'] = str(info['id'])
-            entity.attributes['occi.compute.architecture'] = SERVER_CONFIG[
-                'compute_arch']
+            entity.attributes['occi.compute.architecture'] = CNF.get(
+                'server', 'arch')
             entity.attributes['occi.compute.cores'] = flavor.attributes[
                 'occi.compute.cores']
             entity.attributes['occi.compute.memory'] = flavor.attributes[
@@ -152,13 +152,9 @@ class ComputeBackend(MyBackend):
                 infrastructure.SUSPEND,
                 infrastructure.RESTART]
 
-            # entity.attributes['occi.compute.hostname'] = SERVER_CONFIG[
-            #   'hostname'] % {'id':info['id']}
             info['adminPass'] = ""
             print info
             networkIDs = info['addresses'].keys()
-            # resource.attributes['occi.compute.hostname'] = SERVER_CONFIG[
-            #   'hostname'] % {'id':int(key)}
             if len(networkIDs) > 0:
                 entity.attributes['occi.compute.hostname'] = str(
                     info['addresses'][networkIDs[0]][0]['addr'])

@@ -17,7 +17,7 @@
 # from kamaki.clients.cyclades import CycladesClient
 # from kamaki.cli.config  import Config
 
-from snfOCCI.config import SERVER_CONFIG
+from snfOCCI.config import CNF
 
 from occi import registry
 # from occi.core_model import Mixin
@@ -36,5 +36,5 @@ class snfRegistry(registry.NonePersistentRegistry):
 
     def set_hostname(self, hostname):
         hostname = "https://%s:%s" % (
-            SERVER_CONFIG['hostname'], SERVER_CONFIG['port'])
+            CNF.get('server', 'hostname'), CNF.get('server', 'port'))
         super(snfRegistry, self).set_hostname(hostname)
