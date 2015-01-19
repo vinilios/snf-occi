@@ -13,15 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-# !/usr/bin/env python
-
-# import sys
-# from optparse import OptionParser, OptionValueError
-# import string
-# import sqlite3
-# import eventlet
-# from eventlet import wsgi
-# import os
 import json
 import uuid
 
@@ -301,13 +292,14 @@ class MyAPP(wsgi.Application):
         auth_endpoint = 'snf-auth uri=\'%s\'' % auth_uri
 
         if 'HTTP_X_AUTH_TOKEN' not in req.environ:
-                print "Error: An authentication token has not been provided!"
+                msg = 'An authentication token has not been provided!'
+                print msg
                 status = '401 Not Authorized'
                 headers = [
                     ('Content-Type', 'text/html'),
-                    ('Www-Authenticate', auth_endpoint)]
+                    ('Www-Authenticate', str(auth_endpoint))]
                 response(status, headers)
-                return [str(response)]
+                return [msg, ]
 
         if self.enable_voms:
             environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
@@ -333,13 +325,14 @@ class MyAPP(wsgi.Application):
                     token=environ['HTTP_AUTH_TOKEN'],
                     compute_client=cyclClient)
             except HTTPError:
-                print "Exception from unauthorized access!"
+                msg = 'Exception from unauthorized access!'
+                print msg
                 status = '401 Not Authorized'
                 headers = [
                     ('Content-Type', 'text/html'),
-                    ('Www-Authenticate', auth_endpoint)]
+                    ('Www-Authenticate', str(auth_endpoint))]
                 response(status, headers)
-                return [str(response)]
+                return [msg, ]
 
         else:
             environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
@@ -404,7 +397,7 @@ def application(env, start_response):
 
     body = json.dumps(response)
     print body
-    return [body]
+    return [body, ]
 
 
 def app_factory(global_config, **local_config):
