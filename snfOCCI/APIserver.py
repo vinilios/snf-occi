@@ -42,10 +42,15 @@ from occi import core_model
 from wsgiref.validate import validator
 from webob import Request
 
+from astavoms import SnfOcciUsers
+
 SNF_CLOUD = CNF.get('kamaki', 'default_cloud')
 SNF_ADMIN_URL = CNF.get_cloud(SNF_CLOUD, 'url')
 SNF_ADMIN_TOKEN = CNF.get_cloud(SNF_CLOUD, 'token')
-SNF_ADMIN = astakos.AstakosClient(SNF_ADMIN_URL, SNF_ADMIN_TOKEN)
+USERS = SnfOcciUsers(
+    SNF_ADMIN_URL, SNF_ADMIN_TOKEN, CNF.get('ldap', 'url'),
+    CNF.get('ldap', 'user'), CNF.get('ldap', 'password'),
+    CNF.get('ldap', 'base_dn'), CNF.get('ldap', 'ca_certs') or None)
 
 
 class MyAPP(wsgi.Application):
@@ -303,14 +308,16 @@ class MyAPP(wsgi.Application):
 
         if self.enable_voms:
             environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
-            cyclClient = CycladesComputeClient(
-                SNF_ADMIN.get_service_endpoint(
-                    CycladesComputeClient.service_type),
-                environ['HTTP_X_AUTH_TOKEN'])
-            netClient = CycladesNetworkClient(
-                SNF_ADMIN.get_service_endpoint(
-                    CycladesNetworkClient.service_type),
-                environ['HTTP_X_AUTH_TOKEN'])
+            cyclClient = USERS.add_renew_token(
+                CycladesComputeClient(
+                    USERS.snf_admin.get_service_endpoint(
+                        CycladesComputeClient.service_type),
+                    environ['HTTP_X_AUTH_TOKEN']))
+            netClient = USERS.add_renew_token(
+                CycladesNetworkClient(
+                    USERS.snf_admin.get_service_endpoint(
+                        CycladesNetworkClient.service_type),
+                    environ['HTTP_X_AUTH_TOKEN']))
 
             try:
                 # Up-to-date flavors and images
@@ -336,14 +343,16 @@ class MyAPP(wsgi.Application):
 
         else:
             environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
-            cyclClient = CycladesComputeClient(
-                SNF_ADMIN.get_service_endpoint(
-                    CycladesComputeClient.service_type),
-                environ['HTTP_X_AUTH_TOKEN'])
-            netClient = CycladesNetworkClient(
-                SNF_ADMIN.get_service_endpoint(
-                    CycladesNetworkClient.service_type),
-                environ['HTTP_X_AUTH_TOKEN'])
+            cyclClient = USERS.add_renew_token(
+                CycladesComputeClient(
+                    USERS.snf_admin.get_service_endpoint(
+                        CycladesComputeClient.service_type),
+                    environ['HTTP_X_AUTH_TOKEN']))
+            USERS.netClient = USERS.add_renew_token(
+                CycladesNetworkClient(
+                    USERS.snf_admin.get_service_endpoint(
+                        CycladesNetworkClient.service_type),
+                    environ['HTTP_X_AUTH_TOKEN']))
 
             # Up-to-date flavors and images
             self.refresh_images(cyclClient)
@@ -365,28 +374,27 @@ def application(env, start_response):
     (user_dn, user_vo, user_fqans) = t.process_request(env)
     print (user_dn, user_vo, user_fqans)
 
-    env['HTTP_AUTH_TOKEN'] = get_user_token(user_dn)
-
-    # Get user authentication details
-    user_details = SNF_ADMIN.authenticate(env['HTTP_AUTH_TOKEN'])
+    user = USERS.get_user_info(user_dn, user_vo)
+    env['HTTP_AUTH_TOKEN'] = user['userpassword']
+    user_details = USERS.snf_admin.get_user_details(user['uid'])
 
     response = {
         'access': {
             'token': {
                 'issued_at': '',
-                'expires': user_details['access']['token']['expires'],
+                'expires': user_details['auth_token_expires'],
                 'id': env['HTTP_AUTH_TOKEN']},
             'serviceCatalog': [],
             'user': {
                 'username': user_dn,
-                'roles_links': user_details['access']['user']['roles_links'],
-                'id': user_details['access']['user']['id'],
+                'roles_links': [],
+                'id': user['uid'],
                 'roles': [],
                 'name': user_dn
             },
             'metadata': {
                 'is_admin': 0,
-                'roles': user_details['access']['user']['roles']
+                'roles': user_details['roles']
             }
         }
     }
@@ -419,7 +427,7 @@ def tenant_application(env, start_response):
         raise HTTPError(404, "Unauthorized access")
     # Get user authentication details
     print "@ refresh_user authentication details"
-    user_details = SNF_ADMIN.authenticate(env['HTTP_AUTH_TOKEN'])
+    user_id = USERS.uuid_from_token(env['HTTP_AUTH_TOKEN'])
 
     response = {
         'tenants_links': [],
@@ -427,8 +435,8 @@ def tenant_application(env, start_response):
             {
                 'description': 'Instances of EGI Federated Clouds TF',
                 'enabled': True,
-                'id': user_details['access']['user']['id'],
-                'name':'EGI_FCTF'
+                'id': user_id,
+                'name': 'EGI_FCTF'
             }
         ]
     }
@@ -455,7 +463,3 @@ def occify_terms(term_name):
     term = term_name.strip().replace(' ', '_').replace('.', '-').lower()
     return term.replace('(', '_').replace(')', '_').replace('@', '_').replace(
         '+', '-_')
-
-
-def get_user_token(user_dn):
-    return SNF_ADMIN_TOKEN
