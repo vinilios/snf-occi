@@ -28,7 +28,6 @@ from snfOCCI.extensions import snf_addons
 from kamaki.clients import ClientError
 from kamaki.clients.cyclades import CycladesComputeClient
 from kamaki.clients.cyclades import CycladesNetworkClient
-from kamaki.clients import astakos
 
 from occi.core_model import Mixin, Resource
 from occi.backend import MixinBackend
@@ -306,65 +305,40 @@ class MyAPP(wsgi.Application):
                 response(status, headers)
                 return [msg, ]
 
-        if self.enable_voms:
-            environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
-            cyclClient = USERS.add_renew_token(
-                CycladesComputeClient(
-                    USERS.snf_admin.get_service_endpoint(
-                        CycladesComputeClient.service_type),
-                    environ['HTTP_X_AUTH_TOKEN']))
-            netClient = USERS.add_renew_token(
-                CycladesNetworkClient(
-                    USERS.snf_admin.get_service_endpoint(
-                        CycladesNetworkClient.service_type),
-                    environ['HTTP_X_AUTH_TOKEN']))
+        environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
+        token = environ['HTTP_X_AUTH_TOKEN']
 
-            try:
-                # Up-to-date flavors and images
-                self.refresh_images(cyclClient)
-                self.refresh_flavors_norecursive(cyclClient)
-                self.refresh_network_instances(netClient)
-                self.refresh_compute_instances(cyclClient)
-                # token will be represented in self.extras
-                return self._call_occi(
-                    environ, response,
-                    security=None,
-                    token=environ['HTTP_AUTH_TOKEN'],
-                    compute_client=cyclClient)
-            except HTTPError:
-                msg = 'Exception from unauthorized access!'
-                print msg
-                status = '401 Not Authorized'
-                headers = [
-                    ('Content-Type', 'text/html'),
-                    ('Www-Authenticate', str(auth_endpoint))]
-                response(status, headers)
-                return [msg, ]
+        try:
+            user_id = USERS.uuid_from_token(token)
+        except KeyError:
+            msg = "ERROR: Authentication token does match any LDAP users"
+            print msg
+            status = '401 Not Authorized'
+            headers = [
+                ('Content-Type', 'text/html'),
+                ('Www-Authenticate', auth_endpoint)]
+            response(status, headers)
+            return [msg, ]
 
-        else:
-            environ['HTTP_AUTH_TOKEN'] = req.environ['HTTP_X_AUTH_TOKEN']
-            cyclClient = USERS.add_renew_token(
-                CycladesComputeClient(
-                    USERS.snf_admin.get_service_endpoint(
-                        CycladesComputeClient.service_type),
-                    environ['HTTP_X_AUTH_TOKEN']))
-            USERS.netClient = USERS.add_renew_token(
-                CycladesNetworkClient(
-                    USERS.snf_admin.get_service_endpoint(
-                        CycladesNetworkClient.service_type),
-                    environ['HTTP_X_AUTH_TOKEN']))
+        cycl_url = USERS.snf_admin.get_service_endpoint(
+            CycladesComputeClient.service_type)
+        cyclClient = USERS.add_renew_token(
+            CycladesComputeClient(cycl_url, token), user_id)
 
-            # Up-to-date flavors and images
-            self.refresh_images(cyclClient)
-            self.refresh_flavors_norecursive(cyclClient)
-            self.refresh_network_instances(netClient)
-            self.refresh_compute_instances(cyclClient)
-            # token will be represented in self.extras
-            return self._call_occi(
-                environ, response,
-                security=None,
-                token=environ['HTTP_AUTH_TOKEN'],
-                compute_client=cyclClient)
+        net_url = USERS.snf_admin.get_service_endpoint(
+            CycladesNetworkClient.service_type)
+        netClient = USERS.add_renew_token(
+            CycladesNetworkClient(net_url, token), user_id)
+
+        # Up-to-date flavors and images
+        self.refresh_images(cyclClient)
+        self.refresh_flavors_norecursive(cyclClient)
+        self.refresh_network_instances(netClient)
+        self.refresh_compute_instances(cyclClient)
+        # token will be represented in self.extras
+        return self._call_occi(
+            environ, response,
+            security=None, token=token, compute_client=cyclClient)
 
 
 def application(env, start_response):
@@ -426,7 +400,7 @@ def tenant_application(env, start_response):
     else:
         raise HTTPError(404, "Unauthorized access")
     # Get user authentication details
-    print "@ refresh_user authentication details"
+    print "@ get user id"
     user_id = USERS.uuid_from_token(env['HTTP_AUTH_TOKEN'])
 
     response = {
