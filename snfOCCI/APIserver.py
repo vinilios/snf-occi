@@ -320,12 +320,12 @@ class MyAPP(wsgi.Application):
             response(status, headers)
             return [msg, ]
 
-        cycl_url = USERS.snf_admin.get_service_endpoint(
+        cycl_url = USERS.snf_admin.get_endpoint_url(
             CycladesComputeClient.service_type)
         cyclClient = USERS.add_renew_token(
             CycladesComputeClient(cycl_url, token), user_id)
 
-        net_url = USERS.snf_admin.get_service_endpoint(
+        net_url = USERS.snf_admin.get_endpoint_url(
             CycladesNetworkClient.service_type)
         netClient = USERS.add_renew_token(
             CycladesNetworkClient(net_url, token), user_id)
@@ -348,9 +348,18 @@ def application(env, start_response):
     (user_dn, user_vo, user_fqans) = t.process_request(env)
     print (user_dn, user_vo, user_fqans)
 
-    user = USERS.get_user_info(user_dn, user_vo)
-    env['HTTP_AUTH_TOKEN'] = user['userpassword']
-    user_details = USERS.snf_admin.get_user_details(user['uid'])
+    try:
+        user = USERS.get_user_info(user_dn, user_vo)
+    except ClientError as ce:
+            print ce
+            status = '%s ClientError' % ce.status
+            headers = [('Content-Type', 'text/html'), ('Www-Authenticate', str(
+                'snf-auth uri=\'%s\'' % SNF_ADMIN_URL))]
+            start_response(status, headers)
+            return ['%s' % ce, ]
+
+    env['HTTP_AUTH_TOKEN'], user_id = user['userPassword'][0], user['uid'][0]
+    user_details = USERS.snf_users.get_user_details(user_id)
 
     response = {
         'access': {
@@ -362,7 +371,7 @@ def application(env, start_response):
             'user': {
                 'username': user_dn,
                 'roles_links': [],
-                'id': user['uid'],
+                'id': user_id,
                 'roles': [],
                 'name': user_dn
             },

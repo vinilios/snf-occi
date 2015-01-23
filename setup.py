@@ -15,15 +15,15 @@
 
 from setuptools import setup
 
-requires = ['kamaki>=0.13.1', 'webob', 'eventlet', 'astavoms>=0.3']
+requires = ['kamaki>=0.13.1', 'webob', 'eventlet']
 
 setup(
     name='snf-occi',
-    version='0.2',
+    version='0.3',
     description='OCCI to Openstack/Cyclades API bridge',
     url='https://github.com/grnet/snf-occi',
     license='GPLv3',
-    packages=['snfOCCI', 'snfOCCI.snf_voms', 'snfOCCI.extensions'],
+    packages=['snfOCCI', 'snfOCCI.snf_voms', 'snfOCCI.extensions', 'astavoms'],
     entry_points='''
         [paste.app_factory]
         snf_occi_app = snfOCCI:main
