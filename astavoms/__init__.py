@@ -100,6 +100,7 @@ class SnfOcciUsers(object):
         :raises ClientError: 404 if the project is not found
         :raises ClientError: 409 if more than one projects match, new user
             exists or new user is already enrolled to project
+        :raises ClientError: (tmp) 400 instead of 409, because of a server bug
         :raises KeyError: if dn is not formated as expected
         """
         try:

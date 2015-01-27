@@ -34,7 +34,8 @@ class IdentityClient(Client):
             affilication=affiliation)
         if metadata:
             kwargs['metadata'] = metadata
-        r = self.post('users', json=dict(user=kwargs), success=201)
+        # Success should be 201, but server is currently returning 200, so...
+        r = self.post('users', json=dict(user=kwargs), success=(200, 201))
         return r.json['user']
 
     def get_user_details(self, user_id):
