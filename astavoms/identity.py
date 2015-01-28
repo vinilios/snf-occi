@@ -53,19 +53,19 @@ class IdentityClient(Client):
             metadata=None):
         """Modify User"""
         kwargs = dict()
-        if username:
+        if username is not None:
             kwargs['username'] = username
-        if first_name:
+        if first_name is not None:
             kwargs['first_name'] = first_name
-        if last_name:
+        if last_name is not None:
             kwargs['last_name'] = last_name
-        if affilication:
+        if affilication is not None:
             kwargs['affilication'] = affilication
-        if password:
+        if password is not None:
             kwargs['password'] = password
-        if email:
+        if email is not None:
             kwargs['email'] = email
-        if metadata:
+        if metadata is not None:
             kwargs['metadata'] = metadata
         r = self.put('users/%s' % user_id, json=dict(user=kwargs), success=200)
         return r.json['user']
