@@ -6,9 +6,15 @@
 snf-occi's documentation!
 ====================================
 
-**snf-occi** implements the OCCI specification on top of synnefo’s API in order to achieve greater interoperability. This module is a translation bridge between OCCI and the synnefo endpoints.  It is designed to be as independent as possible from the rest IaaS, providing an OCCI compatibility layer. 
+**snf-occi** implements the OCCI specification and maps it to the Synnefo
+OpenStack API, so ti acts as a translation bridge between OCCI and Synnefo.
+It is designed to be as independent as possible from the rest IaaS, providing
+an OCCI compatibility layer.
 
-**snf-occi** utilizes the API library for the components of the synnefo ecosystem provided by `kamaki <http://www.synnefo.org/docs/kamaki/latest>`_  . It is built on top of kamaki.clients lib in order to communicate with the required synnefo APIs.
+**snf-occi** utilizes the API library for the components of the synnefo
+ecosystem provided by `kamaki <http://www.synnefo.org/docs/kamaki/latest>`_ .
+It is built on top of kamaki.clients lib in order to communicate with the
+required Synnefo APIs.
 
 
 .. toctree::
@@ -26,20 +32,22 @@ The master document for the OCCI specification is at `OCCI Specification <http:/
 
 OCCI and Synnefo
 -----------------
-The OCCI implementation for Synnefo is in accordance with the OCCI Infrastructure specification, that describes common Cloud IaaS components. The correspondence between OCCI and Cyclades is as follows:
+The OCCI implementation for Synnefo is in accordance with the OCCI
+Infrastructure specification, that describes common Cloud IaaS components. The
+correspondence between OCCI and OpenStack/Synnefo is as follows:
 
 +-------------------------+-------------------------+
-|OCCI                     |Cyclades                 |
+|OCCI                     |OpenStack/Synnefo        |
 +=========================+=========================+
-|Compute                  |Synnefo servers          |
+|Compute                  |Compute/servers          |
 +-------------------------+-------------------------+
-|OS Template              |Synnefo images           |
+|OS Template              |Image                    |
 +-------------------------+-------------------------+
-|Resource Template        |Synnefo flavors          
+|Resource Template        |Compute/flavors          |
 +-------------------------+-------------------------+
-|Network                  |Synnefo networks         |
+|Network                  |Networking               |
 +-------------------------+-------------------------+
-|Storage                  |NA                       |
+|Storage                  |Block Storage            |
 +-------------------------+-------------------------+
 
 
@@ -115,36 +123,73 @@ $ pip install eventlet
 $ apt-get install python-m2crypto
 $ apt-get install python-pastedeploy
 $ apt-get install libvomsapi1
+$ apt-get install python-ldap
+
+Also, you need to setup an accessible LDAP directory on the same or a different
+host. The LDAP setup details depend on the host OS e.g.,
+
+$ sudo apt-get install slapd
 
 
 Installation
 -------------
 
+First, create the configuration file. By convention, the configuration file is
+located at the home directory of the user who runs the service and is named
+"snf-occi.conf". To overide the default path, set it to the SNF_OCCI_CONFIG
+environment variable
+
+.. code-block:: console
+
+    $ export SNF_OCCI_CONFIG="/some/other/path"
+
+The configuration file contains settings for the various system components::
+
+    # snf-occi configuration file
+    [kamaki]
+    default_cloud = <CLOUD ALIAS>
+
+    [pastedeploy]
+    auth_ini = /home/USER_WHO_RUNS_SERVICE/snf_voms_auth-paste.ini
+    ini = /home/USER_WHO_RUNS_SERVICE/snf_voms-paste.ini
+
+    [server]
+    port = 8888
+    hostname = <fqdn of this host>
+    arch = x86
+
+    [voms]
+    enable = on
+
+    [ldap]
+    url = ldap://localhost
+    base_dn = ou=users,dc=live,dc=synnefo,dc=org
+    use_tls = off
+    user = <LDAP ADMIN USER DN>
+    password = <LDAP ADMIN USER PASSWORD>
+    # ca_certs = /etc/ssl/certs/cacert
+
+    [cloud "<CLOUD ALIAS>"]
+    url = https://accounts.live.synnefo.org/identity/v2.0
+    token = <OCCI ADMIN TOKEN>
+
+**NOTE**: ca_certs is optional, but recommended - it may require some
+    modifications on the LDAP directory setup, though
+
 Upon the completion of the previous steps, you can install **snf-occi** API translation server by cloning our latest source code:
 
 * `snf-occi Repository <https://github.com/grnet/snf-occi>`_ 
-
-**NOTE**: Before running setup.py, you have to edit the config.py in order to setup the following information:
-
-* Server related settings, e.g.,  API server port, hostname and core architecture
-* Endpoints for the ComputeClient and AstakosClient 
-* Enable / Disable VOMS authentication
-* Paths to directories containing certificates and configuration files that enable the process for VOMS authentication
-
-
 
 Finally, the installation of snf-occi is done with the following steps::
 
 $ python setup.py build
 $ python setup.py install
 
-
 In case that VOMS authentication mode is disabled, then the snf-occi server can be started by typing **snf-occi**.
 
 
 Enabling VOMS authentication
 ============================
-
 
 VOMS Requirements
 ------------------
@@ -165,7 +210,8 @@ $ sudo apt-get install ca-policy-egi-core
 $ sudo apt-get install fetch-crl
 $ sudo fetch-crl
 
-Moreover, a valid certificate issued by a valid CA is required for the server hosting snf-occi. The certificates of valid CAs are located in **/etc/grid-security/certificates/**. The server certificate and key file need to be located in **/etc/ssl** (if the directories with the certificate and key files differ, then the paths to these directories must be appropriately set in the **snfOCCI/config.py**). 
+Moreover, a valid certificate issued by a valid CA is required for the server hosting snf-occi. The certificates of valid CAs are located in **/etc/grid-security/certificates/**. The server certificate and key file need to be located in **/etc/ssl** (if the directories with the certificate and key files differ, then the paths to these directories must be appropriately set in the
+configuration file). 
 
 ::
 
@@ -386,6 +432,28 @@ Moreover, the `rOCCI cli <https://github.com/gwdg/rOCCI-cli>`_ can be used direc
 	* --auth x509
 	* --voms
 	* --user-cred $X509_USER_PROXY
+
+Administration tools
+--------------------
+
+Administration is assisted by the kamaki command line client. Kamaki is used to
+query synnefo deployments and it is a requirement of the system.
+
+The system automatically installs a kamaki plugin to access the user admin API.
+This plugin is disabled by default. To enable it, ssh on the server and:
+
+.. code-block:: console
+
+    $ kamaki config set xuser_cli astavoms.cli
+
+Also, make sure to set the correct URL and admin synnefo TOKEN:
+
+.. code-block:: console
+
+    $ kamaki config set cloud.default.url URL
+    $ kamaki config set cloud.default.token TOKEN
+
+This will allow the administration of synnefo users, with the "xuser" commands.
 
 
 Future Directions

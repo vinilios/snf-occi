@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014 GRNET S.A.
+# Copyright (C) 2012-2015 GRNET S.A.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,42 +13,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from snfOCCI.config import SERVER_CONFIG
-
 from occi.backend import ActionBackend, KindBackend, MixinBackend
 from occi.exceptions import HTTPError
 
 
-#Network Backend for snf-occi-server
+# Network Backend for snf-occi-server
+
 
 class NetworkBackend(KindBackend, ActionBackend):
     def create(self, entity, extras):
-        raise HTTPError(501,"Currently not supported.")
+        raise HTTPError(501, "Currently not supported.")
 
     def action(self, entity, action, attributes, extras):
         raise HTTPError(501, "Currently not supported.")
-    
+
+
 class IpNetworkBackend(MixinBackend):
     def create(self, entity, extras):
-        raise HTTPError(501,"Currently not supported.")
+        raise HTTPError(501, "Currently not supported.")
+
 
 class IpNetworkInterfaceBackend(MixinBackend):
-    
-    pass
+    """Ip Network Interface Backend"""
+
 
 class NetworkInterfaceBackend(KindBackend):
-    
+
     def create(self, entity, extras):
-        raise HTTPError(501,"Currently not supported.")
+        raise HTTPError(501, "Currently not supported.")
 
     def action(self, entity, action, attributes, extras):
         raise HTTPError(501, "Currently not supported.")
-
 
     def update(self, old, new, extras):
         raise HTTPError(501, "Currently not supported.")
 
     def replace(self, old, new, extras):
         raise HTTPError(501, "Currently not supported.")
-
-    

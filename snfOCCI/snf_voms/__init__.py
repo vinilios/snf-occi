@@ -20,7 +20,7 @@ from logging import getLogger
 import voms_helper
 from kamaki.clients import ClientError
 
-LOG =  getLogger(__name__)
+LOG = getLogger(__name__)
 
 # Environment variable used to pass the request context
 CONTEXT_ENV = 'snf.context'
@@ -37,6 +37,7 @@ VOMSDIR_PATH = "/etc/grid-security/vomsdir/"
 CA_PATH = "/etc/grid-security/certificates/"
 VOMSAPI_LIB = "/usr/lib/libvomsapi.so.1"
 PARAMS_ENV = 'snf_voms.params'
+
 
 class VomsError():
     """Voms credential management error"""
@@ -88,27 +89,24 @@ class VomsAuthN():
 
     Sets 'ssl' in the context as a dictionary containing this data.
     """
-    
+
     def __init__(self, *args, **kwargs):
-        
-       
-        # VOMS stuff
+        """VOMS stuff"""
         try:
             self.voms_json = json.loads(
                 open(VOMS_POLICY).read())
         except ValueError:
             raise ClientError(
                 'Bad Formatted VOMS json',
-                details='The VOMS json data was not corectly formatted in file %s' % VOMS_POLICY)
+                details='The VOMS json data was not corectly formatted in'
+                        ' file %s' % VOMS_POLICY)
         except:
             raise ClientError(
-                              'No loading of VOMS json file',
-                details='The VOMS json file located in %s was not loaded' % VOMS_POLICY)
-            return ClientError
-        
+                'No loading of VOMS json file',
+                details='The VOMS json file at %s was not loaded' % (
+                    VOMS_POLICY))
         self._no_verify = False
-
-        #super(VomsAuthN, self).__init__(*args, **kwargs)
+        # super(VomsAuthN, self).__init__(*args, **kwargs)
 
     @staticmethod
     def _get_cert_chain(ssl_info):
@@ -127,17 +125,15 @@ class VomsAuthN():
         try:
             cert, chain = self._get_cert_chain(ssl_info)
         except M2Crypto.X509.X509Error:
-            raise ClientError(
-                              'SSL data not verified',
-                              details=CONTEXT_ENV)
-       
+            raise ClientError('SSL data not verified', details=CONTEXT_ENV)
+
         with voms_helper.VOMS(VOMSDIR_PATH,
                               CA_PATH, VOMSAPI_LIB) as v:
             if self._no_verify:
                 v.set_no_verify()
-               
+
             voms_data = v.retrieve(cert, chain)
-            
+
             if not voms_data:
                 raise VomsError(v.error.value)
 
@@ -169,29 +165,25 @@ class VomsAuthN():
         role = l.pop().split("=")[-1]
         vogroup = "/".join(l)
         return (vogroup, role, capability)
-    
+
     def _process_environ(self, environ):
-        
+
         LOG.warning("Getting the environment parameters...")
         # the environment variable CONTENT_LENGTH may be empty or missing
         try:
             request_body_size = int(environ.get('CONTENT_LENGTH', 0))
         except (ValueError):
             request_body_size = 0
-            raise ClientError(
-                'Not auth method provided',
-                details='The request body is empty, while it should contain the authentication method')
-            
+            raise ClientError('Not auth method provided', details=(
+                'The request body is empty, '
+                'while it should contain the authentication method'))
+
         request_body = environ['wsgi.input'].read(request_body_size)
-        
         print request_body
-        
-        request_body = request_body.replace("true","\"true\"")
-        request_body = request_body.replace('"','\'' )  
-        
+        request_body = request_body.replace("true", "\"true\"")
+        request_body = request_body.replace('"', '\'')
+
         params_parsed = ast.literal_eval(request_body)
-        
-        
         params = {}
         for k, v in params_parsed.iteritems():
             if k in ('self', 'context'):
@@ -199,14 +191,13 @@ class VomsAuthN():
             if k.startswith('_'):
                 continue
             params[k] = v
-            
-        
+
         environ[PARAMS_ENV] = params
         print environ[PARAMS_ENV]
 
     def is_applicable(self, environ):
         """Check if the request is applicable for this handler or not"""
-        print "Checking if the request is applicable for this handler or not..."
+        print "Checking if the request is applicable for this handler or not"
         self._process_environ(environ)
         params = environ.get(PARAMS_ENV, {})
         auth = params.get("auth", {})
@@ -214,28 +205,23 @@ class VomsAuthN():
             if "true" in auth["voms"]:
                 return True
             else:
-                raise ClientError(
-                'Error in json',
-                details='Error in JSON, voms must be set to true')
-            
+                raise ClientError('Error in json', details=(
+                    'Error in JSON, voms must be set to true'))
+
         return False
 
-
-    def authenticate(self,ssl_data):
-        
+    def authenticate(self, ssl_data):
         try:
             voms_info = self._get_voms_info(ssl_data)
         except VomsError as e:
             raise e
         user_dn = voms_info["user"]
         user_vo = voms_info["voname"]
-        user_fqans = voms_info["fqans"] 
-        
-        return user_dn, user_vo, user_fqans 
+        user_fqans = voms_info["fqans"]
+        return user_dn, user_vo, user_fqans
 
-          
     def process_request(self, environ):
-        
+
         print "Inside process_Request at last!!!!"
         if not self.is_applicable(environ):
             return self.application
@@ -251,14 +237,14 @@ class VomsAuthN():
 
         voms_info = self._get_voms_info(ssl_dict)
 
-        params  = environ[PARAMS_ENV]
-        
+        params = environ[PARAMS_ENV]
+
         tenant_from_req = params["auth"].get("tenantName", None)
-        
+
         print voms_info, tenant_from_req
         user_dn = voms_info["user"]
         user_vo = voms_info["voname"]
-        user_fqans = voms_info["fqans"] 
+        user_fqans = voms_info["fqans"]
         environ['REMOTE_USER'] = user_dn
-        
+
         return user_dn, user_vo, user_fqans

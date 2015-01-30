@@ -12,15 +12,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import os
+# import os
 
 from paste import deploy
-
-import logging 
+from snfOCCI.config import CNF
+import logging
 
 LOG = logging.getLogger(__name__)
 
 # NOTE(ldbragst): 'application' is required in this context by WSGI spec.
 # The following is a reference to Python Paste Deploy documentation
 # http://pythonpaste.org/deploy/
-application = deploy.loadapp('config:/home/synnefo/snf_voms-paste.ini')
+application = deploy.loadapp('config:%s' % CNF.get('pastedeploy', 'ini'))
