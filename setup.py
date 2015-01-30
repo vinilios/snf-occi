@@ -15,7 +15,7 @@
 
 from setuptools import setup
 
-requires = ['kamaki>=0.13.1', 'webob', 'eventlet']
+requires = ['kamaki>=0.13.1', 'webob', 'eventlet', 'python-ldap']
 
 setup(
     name='snf-occi',
