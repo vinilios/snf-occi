@@ -153,4 +153,6 @@ class SnfOcciUsers(object):
         """
         with vomsdir.LDAPUser(**self.ldap_conf) as ldap_user:
             r = ldap_user.search_by_token(token, ['uid', ])
+            if not r.values():
+                raise KeyError("Token not found in LDAP directory")
             return r.values()[0]['uid'][0]

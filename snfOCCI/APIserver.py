@@ -311,7 +311,7 @@ class MyAPP(wsgi.Application):
         try:
             user_id = USERS.uuid_from_token(token)
         except KeyError:
-            msg = "ERROR: Authentication token does match any LDAP users"
+            msg = "ERROR: Authentication token does not match any LDAP users"
             print msg
             status = '401 Not Authorized'
             headers = [
