@@ -14,12 +14,13 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup
+from snfOCCI.version import __version__
 
 requires = ['kamaki>=0.13.1', 'webob', 'eventlet', 'python-ldap']
 
 setup(
     name='snf-occi',
-    version='0.3',
+    version=__version__,
     description='OCCI to Openstack/Cyclades API bridge',
     url='https://github.com/grnet/snf-occi',
     license='GPLv3',
