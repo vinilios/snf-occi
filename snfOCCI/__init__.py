@@ -34,7 +34,6 @@ which point to this function call (<module name>:function).
 # W0613:unused args
 # pylint: disable=W0613
 
-from snfOCCI import APIserver
 
 
 # noinspection PyUnusedLocal
@@ -42,4 +41,5 @@ def main(global_config, **settings):
     """
     This is the entry point for paste into the OCCI OS world.
     """
+    from snfOCCI import APIserver
     return APIserver.MyAPP()
