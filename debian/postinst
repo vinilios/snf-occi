@@ -45,6 +45,11 @@ case "$1" in
         echo "Please fix this and reinstall this package."
         exit 1
       fi
+
+      # install requirements
+      a2enmod ssl
+      a2enmod headers
+      fetch-crl
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
