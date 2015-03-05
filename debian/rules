@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with python2
+
+package=snf-occi
+
+override_dh_auto_install:
+	dh_auto_install
+	mkdir -p debian/$(package)/etc/snf-occi
+	-mv conf/*.conf debian/$(package)/etc/snf-occi
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 0640 debian/$(package)/etc/snf-occi/*
+	chmod 0750 debian/$(package)/etc/snf-occi
+	chown -R root:www-data debian/$(package)/etc/snf-occi
