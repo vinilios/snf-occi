@@ -7,12 +7,13 @@ package=snf-occi
 
 override_dh_auto_install:
 	dh_auto_install
+	tree
 	mkdir -p debian/$(package)/etc/snf-occi
-	-mv conf/*.conf debian/$(package)/etc/snf-occi
-	cp contrib/snfocci.conf /etc/apache2/sites-available/snfocci
+	mv conf/snf-occi.conf debian/$(package)/etc/snf-occi
+	mkdir -p debian/$(package)/etc/apache2/sites-available
+	mv conf/snfocci.vhost.conf debian/$(package)/etc/apache2/sites-available/snfocci
 
 override_dh_fixperms:
 	dh_fixperms
 	chmod 0640 debian/$(package)/etc/snf-occi/*
 	chmod 0750 debian/$(package)/etc/snf-occi
-	chown -R root:www-data debian/$(package)/etc/snf-occi
