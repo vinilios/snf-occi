@@ -14,7 +14,7 @@ override_dh_auto_install:
 	mkdir -p debian/$(package)/etc/apache2/sites-available
 	mv conf/snfocci.vhost.conf debian/$(package)/etc/apache2/sites-available/snfocci
 
-        mkdir -p /usr/lib/cgi-bin/snf_voms
+	mkdir -p /usr/lib/cgi-bin/snf_voms
 	cp snfOCCI/httpd/snf_voms.py $(cgiroot)/snf_voms.py
 	ln $(cgiroot)/snf_voms.py $(cgiroot)/main
 	cp snfOCCI/httpd/snf_voms_auth.py $(cgiroot)/snf_voms_auth.py
