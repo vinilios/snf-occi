@@ -32,7 +32,7 @@ SSL_CLIENT_CERT_CHAIN_ENV_PREFIX = "SSL_CLIENT_CERT_CHAIN_"
 
 """Global variables that contain VOMS related paths
 """
-VOMS_POLICY = "/etc/snf/voms.json"
+VOMS_POLICY = "/etc/snf-occi/voms.json"
 VOMSDIR_PATH = "/etc/grid-security/vomsdir/"
 CA_PATH = "/etc/grid-security/certificates/"
 VOMSAPI_LIB = "/usr/lib/libvomsapi.so.1"
