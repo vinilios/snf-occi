@@ -47,8 +47,10 @@ case "$1" in
       fi
 
       # install requirements
+      echo -n "Enabling required apache2 modules (ssl/headers)"
       a2enmod ssl
       a2enmod headers
+      echo -n "Running fetch-crl"
       fetch-crl
       chown -R synnefo:www-data /etc/snf-occi/
     ;;
