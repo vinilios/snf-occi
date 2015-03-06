@@ -4,6 +4,7 @@
 	dh $@ --with python2
 
 package=snf-occi
+cgiroot=debian/snf-occi/usr/lib/cgi-bin/snf_voms
 
 override_dh_auto_install:
 	dh_auto_install
@@ -12,6 +13,18 @@ override_dh_auto_install:
 	mv conf/snf-occi.conf debian/$(package)/etc/snf-occi
 	mkdir -p debian/$(package)/etc/apache2/sites-available
 	mv conf/snfocci.vhost.conf debian/$(package)/etc/apache2/sites-available/snfocci
+
+        mkdir -p /usr/lib/cgi-bin/snf_voms
+	cp snfOCCI/httpd/snf_voms.py $(cgiroot)/snf_voms.py
+	ln $(cgiroot)/snf_voms.py $(cgiroot)/main
+	cp snfOCCI/httpd/snf_voms_auth.py $(cgiroot)/snf_voms_auth.py
+	ln $(cgiroot)/snf_voms_auth.py $(cgiroot)/main_auth
+
+	cp snfOCCI/httpd/snf_voms-paste.ini debian/$(package)/etc/snf-occi/
+	cp snfOCCI/httpd/snf_voms_auth-paste.ini debian/$(package)/etc/snf-occi/
+
+	cp conf/voms.json debian/$(package)/etc/snf-occi/
+	
 
 override_dh_fixperms:
 	dh_fixperms

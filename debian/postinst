@@ -50,6 +50,7 @@ case "$1" in
       a2enmod ssl
       a2enmod headers
       fetch-crl
+      chown -R synnefo:www-data /etc/snf-occi/
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
