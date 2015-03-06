@@ -12,7 +12,8 @@ Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}, python-webob, 
   python-eventlet, python-m2crypto, libvomsapi1, 
   python-ldap, ca-policy-egi-core, fetch-crl, apache2, 
-  libapache2-mod-wsgi, python-pastedeploy
+  libapache2-mod-wsgi, python-pastedeploy, python-yaml, 
+  python-pyssf
 Provides: ${python:Provides}
 XB-Python-Version: ${python:Versions}
 Description: OCCI/Synnefo integration service
