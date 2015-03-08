@@ -188,6 +188,35 @@ $ python setup.py install
 In case that VOMS authentication mode is disabled, then the snf-occi server can be started by typing **snf-occi**.
 
 
+Install using debian packages
+============================
+
+* Add extra apt repositories::
+
+    $ curl https://dist.eugridpma.info/distribution/igtf/current/GPG-KEY-EUGridPMA-RPM-3 | apt-key add -
+    $ echo "deb http://repository.egi.eu/sw/production/cas/1/current egi-igtf core" > /etc/apt/sources.list.d/egi-cas.list
+    $ curl https://dev.grnet.gr/files/apt-grnetdev.pub | apt-key add -
+    $ echo "deb http://apt.dev.grnet.gr wheezy/" > /etc/apt/sources.list.d/grnet.dev.list
+    $ apt-get update
+
+* Install snf-occi package::
+
+    $ apt-get install snf-occi
+
+* Update `snf-occi` configuration files
+
+`snf-occi` configuration files are placed in `/etc/snf-occi`. Check other sections of this document 
+for detailed configuration infomration.
+
+* Verify vhost configuration and enable apache occi vhost
+   
+A common vhost file is placed in `/etc/apache2/sites-available/snfocci`. You can edit it 
+or copy it to match your deployment configuration. To enable the occi vhosts::
+
+    $ a2ensite snfocci
+    $ service apache2 restart
+
+
 Enabling VOMS authentication
 ============================
 
